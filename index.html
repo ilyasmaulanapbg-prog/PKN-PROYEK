@@ -1,0 +1,3155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Perpustakaan Sihir Interaktif 3D — The Old Archive</title>
+    <style>
+        :root {
+            --bg-body: #21170f;
+            --surface: #fdfaf4;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --page-front: #fbf8f1;
+            --page-back: #f3eee3;
+            --border-page: #cfc7b8;
+            --spine-shadow: rgba(20, 15, 10, 0.28);
+            --accent: #b45309;
+            --accent-hover: #92400e;
+            --accent-soft: rgba(180, 83, 9, 0.08);
+            --cover-bg: #1e293b;
+            --cover-text: #f8fafc;
+            --font-scale: 1;
+            --paper-grain-opacity: 0.045;
+            --hud-text: #f3e4c8;
+            --ambient-glow: rgba(255, 224, 150, 0.3);
+        }
+
+        body.dark-mode {
+            --surface: #182030;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --page-front: #1b2232;
+            --page-back: #141a27;
+            --border-page: #334155;
+            --spine-shadow: rgba(0, 0, 0, 0.72);
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --accent-soft: rgba(56, 189, 248, 0.1);
+            --cover-bg: #0f172a;
+            --cover-text: #e2e8f0;
+            --paper-grain-opacity: 0.06;
+            --ambient-glow: rgba(56, 189, 248, 0.12);
+        }
+
+        body.lumos-boost {
+            --ambient-glow: rgba(254, 240, 138, 0.54);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #21170f;
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 12px;
+            transition: background 0.45s ease, color 0.35s ease;
+            overflow-x: hidden;
+            user-select: none;
+            position: relative;
+            isolation: isolate;
+        }
+
+        /* Latar Belakang Ruang Baca Perpustakaan Klasik */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            transition: all 0.5s ease;
+            background:
+                radial-gradient(ellipse at 50% 14%, var(--ambient-glow), transparent 58%),
+                linear-gradient(90deg, rgba(16, 9, 5, 0.85), rgba(68, 39, 20, 0.38) 20%, rgba(24, 14, 9, 0.25) 50%, rgba(68, 39, 20, 0.38) 80%, rgba(16, 9, 5, 0.85)),
+                repeating-linear-gradient(90deg, #321f13 0 9%, #4d301c 9.2% 9.8%, #26170f 10% 19%);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none;
+            opacity: 0.72;
+            background:
+                linear-gradient(to bottom, transparent 0 24%, rgba(15, 8, 5, 0.88) 24.5% 26%, transparent 26.5% 53%, rgba(15, 8, 5, 0.9) 53.5% 55%, transparent 55.5% 82%, rgba(15, 8, 5, 0.9) 82.5% 84%, transparent 84.5%),
+                repeating-linear-gradient(90deg, transparent 0 7%, rgba(12, 7, 4, 0.55) 7.2% 7.8%, transparent 8% 15%);
+        }
+
+        /* --- 1. LILIN MELAYANG INTERAKTIF --- */
+        .floating-candles-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 45;
+            overflow: hidden;
+        }
+
+        .magic-candle {
+            position: absolute;
+            width: 14px;
+            height: 48px;
+            pointer-events: auto;
+            cursor: pointer;
+            background: linear-gradient(90deg, #e7d8be, #fffdf7 45%, #cbb590);
+            border-radius: 3px 3px 2px 2px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45), 0 0 20px rgba(251, 191, 36, 0.22);
+            animation: candleHover var(--dur, 4.5s) ease-in-out infinite alternate;
+            animation-delay: var(--delay, 0s);
+            transition: filter 0.3s ease;
+        }
+
+        .magic-candle:hover { filter: brightness(1.15); }
+
+        .magic-candle::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 2px;
+            width: 3px;
+            height: 14px;
+            background: #fffbeb;
+            border-radius: 0 0 3px 3px;
+            opacity: 0.85;
+        }
+
+        .magic-candle::after {
+            content: "";
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            width: 2px;
+            height: 5px;
+            transform: translateX(-50%);
+            background: #1c1917;
+        }
+
+        .candle-flame {
+            position: absolute;
+            top: -17px;
+            left: 50%;
+            width: 10px;
+            height: 16px;
+            transform: translateX(-50%);
+            background: radial-gradient(ellipse at 50% 75%, #ffffff 15%, #fde047 50%, #f97316 88%, transparent 100%);
+            border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+            box-shadow:
+                0 0 14px 4px rgba(253, 224, 71, 0.65),
+                0 0 32px 10px rgba(245, 158, 11, 0.35);
+            animation: flameFlicker 0.28s ease-in-out infinite alternate;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .magic-candle.extinguished .candle-flame {
+            opacity: 0;
+            transform: translateX(-50%) scale(0.1);
+            animation: none;
+        }
+
+        .candle-smoke {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(226, 232, 240, 0.65);
+            filter: blur(2px);
+            pointer-events: none;
+            animation: smokeRise 1.1s ease-out forwards;
+        }
+
+        @keyframes smokeRise {
+            0%   { opacity: 0.8; transform: translate(-50%, 0) scale(0.6); }
+            100% { opacity: 0; transform: translate(-30%, -34px) scale(2.1); }
+        }
+
+        @keyframes candleHover {
+            0%   { transform: translateY(0px) rotate(-1.5deg); }
+            100% { transform: translateY(-18px) rotate(1.5deg); }
+        }
+
+        @keyframes flameFlicker {
+            0%   { transform: translateX(-50%) scale(0.94, 1.04) skewX(-2deg); opacity: 0.92; }
+            100% { transform: translateX(-50%) scale(1.06, 0.96) skewX(2deg); opacity: 1; }
+        }
+
+        /* --- 2. KURSOR TONGKAT SIHIR & LENSA REVELIO --- */
+        .wand-tip-glow {
+            position: fixed;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(253, 224, 71, 0.55) 40%, transparent 72%);
+            box-shadow: 0 0 18px rgba(253, 224, 71, 0.7);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .revelio-lens {
+            position: fixed;
+            width: 148px;
+            height: 148px;
+            border-radius: 50%;
+            border: 3px solid #fbbf24;
+            box-shadow:
+                0 0 28px rgba(251, 191, 36, 0.65),
+                inset 0 0 24px rgba(253, 224, 71, 0.35);
+            background: radial-gradient(circle, rgba(254, 249, 195, 0.14), rgba(180, 83, 9, 0.08));
+            pointer-events: none;
+            z-index: 9990;
+            transform: translate(-50%, -50%);
+            display: none;
+            place-items: center;
+        }
+
+        .revelio-lens.active {
+            display: grid;
+        }
+
+        .revelio-lens::after {
+            content: "✦ REVELIO ✦";
+            position: absolute;
+            bottom: -22px;
+            font: 700 0.62rem Georgia, serif;
+            letter-spacing: 0.14em;
+            color: #fde047;
+            background: rgba(24, 14, 7, 0.88);
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(251, 191, 36, 0.5);
+        }
+
+        /* Tinta Rahasia yang Tersingkap di dalam Lensa Revelio */
+        .invisible-ink-box {
+            margin-top: 8px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px dashed rgba(180, 83, 9, 0.35);
+            background: rgba(254, 240, 138, 0.14);
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: calc(0.79rem * var(--font-scale));
+            color: #92400e;
+            opacity: 0.06;
+            filter: blur(4px);
+            transition: opacity 0.25s ease, filter 0.25s ease, transform 0.25s ease;
+        }
+
+        body.dark-mode .invisible-ink-box {
+            color: #fde047;
+            border-color: rgba(253, 224, 71, 0.4);
+        }
+
+        .invisible-ink-box.revealed {
+            opacity: 1;
+            filter: blur(0);
+            transform: scale(1.01);
+            box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
+        }
+
+        .wand-stardust {
+            position: fixed;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #fef08a;
+            box-shadow: 0 0 8px #f59e0b;
+            pointer-events: none;
+            z-index: 9998;
+            animation: stardustFall 0.85s ease-out forwards;
+        }
+
+        @keyframes stardustFall {
+            0%   { opacity: 0.95; transform: scale(1) translate(0, 0); }
+            100% { opacity: 0; transform: scale(0.15) translate(var(--sx), var(--sy)); }
+        }
+
+        .library-label {
+            width: min(820px, 100%);
+            color: var(--hud-text);
+            text-align: center;
+            font-family: Georgia, serif;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            font-size: 0.74rem;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+            padding: 2px 0 6px;
+            position: relative;
+            z-index: 60;
+        }
+
+        /* --- 3. BILAH MANTRA & SUARA MIKROFON --- */
+        .spell-bar {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 60;
+        }
+
+        .spell-chip {
+            background: rgba(28, 17, 10, 0.88);
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            color: #fde68a;
+            padding: 4px 11px;
+            border-radius: 999px;
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 0.74rem;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .spell-chip:hover, .spell-chip.active {
+            background: rgba(180, 83, 9, 0.92);
+            border-color: #fef08a;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 0 14px rgba(251, 191, 36, 0.65);
+        }
+
+        .spell-chip.listening {
+            background: #991b1b;
+            border-color: #fca5a5;
+            animation: pulseMic 1.1s ease-in-out infinite;
+        }
+
+        @keyframes pulseMic {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .spell-toast {
+            position: fixed;
+            top: 98px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: rgba(20, 12, 7, 0.94);
+            border: 1px solid #fbbf24;
+            color: #fef08a;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 0.8rem;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6), 0 0 16px rgba(251, 191, 36, 0.35);
+            z-index: 150;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .spell-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* --- 4. RELIK MEJA BACA YANG BISA DIGESER (JAM PASIR & BOLA KRISTAL) --- */
+        .desk-relic {
+            position: fixed;
+            z-index: 65;
+            width: 64px;
+            height: 76px;
+            border-radius: 16px;
+            background: linear-gradient(155deg, rgba(44, 26, 15, 0.92), rgba(20, 11, 6, 0.95));
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55), inset 0 1px rgba(255, 255, 255, 0.14);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: grab;
+            touch-action: none;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .desk-relic:hover {
+            border-color: #fde047;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.65), 0 0 16px rgba(251, 191, 36, 0.45);
+        }
+
+        .desk-relic:active {
+            cursor: grabbing;
+        }
+
+        .relic-icon {
+            font-size: 1.55rem;
+            filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.5));
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .desk-relic.spinning .relic-icon {
+            transform: rotate(360deg) scale(1.18);
+        }
+
+        .relic-label {
+            font: 700 0.54rem 'Segoe UI', sans-serif;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #f3d299;
+        }
+
+        /* Toolbar Atas */
+        .toolbar {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--surface);
+            padding: 9px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border-page);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            position: relative;
+            z-index: 60;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-page);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .tool-btn.active {
+            background-color: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        .toc-select {
+            background-color: var(--surface);
+            color: var(--text-main);
+            border: 1px solid var(--border-page);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            max-width: 240px;
+        }
+
+        /* Panggung 3D Buku */
+        .book-stage {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px 0;
+            position: relative;
+            z-index: 50;
+            touch-action: pan-y;
+        }
+
+        .book-scene {
+            width: 330px;
+            height: 475px;
+            perspective: 2400px;
+            position: relative;
+            filter: drop-shadow(0 24px 26px rgba(0, 0, 0, 0.55));
+            transition: transform 0.6s ease;
+        }
+
+        .book-scene.magic-landing {
+            animation: bookLanding 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.12) forwards;
+        }
+
+        @keyframes bookLanding {
+            0% {
+                opacity: 0;
+                transform: scale(0.42) translate(95px, -90px) rotateX(32deg) rotateY(22deg);
+                filter: drop-shadow(0 45px 40px rgba(251, 191, 36, 0.6));
+            }
+            70% {
+                opacity: 1;
+                transform: scale(1.03) translateY(5px) rotateX(-3deg) rotateY(-2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0) rotateX(0deg) rotateY(0deg);
+                filter: drop-shadow(0 24px 26px rgba(0, 0, 0, 0.55));
+            }
+        }
+
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .book::before {
+            content: "";
+            position: absolute;
+            z-index: 0;
+            left: -8px;
+            top: 5px;
+            width: 12px;
+            height: calc(100% - 10px);
+            border-radius: 4px 0 0 4px;
+            background: linear-gradient(90deg, #17100c, #5b3925 35%, #24170f);
+            box-shadow: -5px 3px 10px rgba(0, 0, 0, 0.45);
+        }
+
+        .book::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: -9px;
+            width: 10px;
+            height: calc(100% - 8px);
+            background: repeating-linear-gradient(
+                to right,
+                #c2b9a7 0px,
+                #fbf8f1 1.5px,
+                #a39987 3px
+            );
+            border-radius: 0 4px 4px 0;
+            box-shadow: 4px 6px 14px rgba(0, 0, 0, 0.3);
+            z-index: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .book.is-closed-back::after {
+            opacity: 0;
+        }
+
+        @media (min-width: 768px) {
+            .book.is-open {
+                transform: translateX(50%);
+            }
+        }
+
+        /* --- SISTEM KERTAS LEMAS 4 SEGMEN BERANTAI --- */
+        .leaf {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            cursor: grab;
+        }
+
+        .leaf:active {
+            cursor: grabbing;
+        }
+
+        .bend-seg {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform-origin: left center;
+            will-change: transform;
+        }
+
+        .seg-0 { left: 0; width: 25%; }
+        .seg-1, .seg-2, .seg-3 { left: 100%; width: 100%; }
+
+        .slice-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: calc(100% + 0.6px);
+            height: 100%;
+            overflow: hidden;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .slice-back {
+            transform: rotateY(180deg);
+        }
+
+        .page {
+            position: absolute;
+            top: 0;
+            width: 330px;
+            height: 475px;
+            padding: 24px 22px;
+            border-radius: 3px 14px 14px 3px;
+            border: 1px solid var(--border-page);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            overflow: hidden;
+        }
+
+        .page::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='1'/%3E%3C/svg%3E");
+            opacity: var(--paper-grain-opacity);
+            pointer-events: none;
+            z-index: 4;
+            mix-blend-mode: multiply;
+        }
+
+        body.dark-mode .page::after {
+            mix-blend-mode: screen;
+        }
+
+        .page-front::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            background: linear-gradient(135deg, transparent 46%, rgba(0, 0, 0, 0.16) 49%, var(--page-back) 51%, #e5dec9 100%);
+            border-radius: 10px 0 0 0;
+            box-shadow: -3px -3px 8px rgba(0, 0, 0, 0.12);
+            transition: width 0.25s ease, height 0.25s ease;
+            pointer-events: none;
+            z-index: 7;
+        }
+
+        .leaf:hover .page-front::before {
+            width: 34px;
+            height: 34px;
+        }
+
+        .cover-front::before {
+            display: none;
+        }
+
+        .bend-shade {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0;
+        }
+
+        .page-front {
+            background-color: var(--page-front);
+            background-image: linear-gradient(to right, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.03) 6%, transparent 18%);
+            box-shadow: inset 16px 0 22px -12px var(--spine-shadow);
+        }
+
+        .page-back {
+            background-color: var(--page-back);
+            background-image: linear-gradient(to left, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.03) 6%, transparent 18%);
+            border-radius: 14px 3px 3px 14px;
+            box-shadow: inset -16px 0 22px -12px var(--spine-shadow);
+        }
+
+        .cover-front {
+            background: linear-gradient(145deg, var(--cover-bg) 0%, #2c3a4f 100%);
+            color: var(--cover-text);
+            border-left: 10px solid #090d16;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Astrolab Sampul Interaktif */
+        .arcana-medallion {
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(251, 191, 36, 0.65);
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.16), rgba(15, 23, 42, 0.85));
+            box-shadow: 0 0 22px rgba(251, 191, 36, 0.25), inset 0 0 12px rgba(251, 191, 36, 0.25);
+            position: relative;
+            display: grid;
+            place-items: center;
+            margin: 0 auto;
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+        }
+
+        .arcana-medallion:hover {
+            box-shadow: 0 0 28px rgba(253, 224, 71, 0.65), inset 0 0 16px rgba(253, 224, 71, 0.4);
+        }
+
+        .astrolabe-ring-outer {
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 1px dashed rgba(253, 224, 71, 0.75);
+            animation: spinAstrolabe 18s linear infinite;
+        }
+
+        .astrolabe-ring-inner {
+            position: absolute;
+            inset: 17px;
+            border-radius: 50%;
+            border: 1px solid rgba(251, 191, 36, 0.55);
+            transform: rotate(45deg);
+            animation: spinAstrolabeReverse 11s linear infinite;
+        }
+
+        .astrolabe-ring-inner::before {
+            content: "✦";
+            position: absolute;
+            top: -7px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: #fde047;
+        }
+
+        .astrolabe-moon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fde047;
+            box-shadow: 0 0 12px #fbbf24;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .astrolabe-moon::after {
+            content: "";
+            position: absolute;
+            top: -2px;
+            left: 6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #1e293b;
+            transition: transform 0.5s ease;
+        }
+
+        .secret-rune-whisper {
+            font-size: 0.72rem;
+            font-style: italic;
+            color: #fde047;
+            min-height: 18px;
+            opacity: 0.9;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+        }
+
+        @keyframes spinAstrolabe {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        @keyframes spinAstrolabeReverse {
+            from { transform: rotate(360deg); }
+            to   { transform: rotate(0deg); }
+        }
+
+        .cover-ornament {
+            width: 68px;
+            height: 2px;
+            background-color: var(--accent);
+            margin: 0 auto;
+        }
+
+        .cover-back {
+            background: linear-gradient(215deg, var(--cover-bg) 0%, #2c3a4f 100%);
+            color: var(--cover-text);
+            border-right: 10px solid #090d16;
+            text-align: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .bookmark-ribbon {
+            position: absolute;
+            top: -2px;
+            right: 22px;
+            width: 18px;
+            height: 34px;
+            background: linear-gradient(90deg, #991b1b, #ef4444 48%, #991b1b);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+            filter: drop-shadow(0 2px 4px rgba(127, 29, 29, 0.45));
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .leaf.is-bookmarked .bookmark-ribbon {
+            display: block;
+        }
+
+        .page-header {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.4px;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border-page);
+            padding-bottom: 7px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            position: relative;
+            z-index: 2;
+        }
+
+        .page-body {
+            margin: 12px 0;
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+            position: relative;
+            z-index: 2;
+            scrollbar-width: none;
+        }
+
+        .page-body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Efek Tinta Sihir Muncul Perlahan */
+        .leaf.ink-revealing .page-body h2,
+        .leaf.ink-revealing .page-body p,
+        .leaf.ink-revealing .page-body li,
+        .leaf.ink-revealing .page-body .quote-box,
+        .leaf.ink-revealing .page-body .timeline-item {
+            animation: enchantedInkAppear 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .leaf.ink-revealing .page-body > *:nth-child(1) { animation-delay: 0.05s; }
+        .leaf.ink-revealing .page-body > *:nth-child(2) { animation-delay: 0.18s; }
+        .leaf.ink-revealing .page-body > *:nth-child(3) { animation-delay: 0.32s; }
+        .leaf.ink-revealing .page-body > *:nth-child(4) { animation-delay: 0.46s; }
+        .leaf.ink-revealing .page-body > *:nth-child(5) { animation-delay: 0.58s; }
+
+        @keyframes enchantedInkAppear {
+            0% {
+                opacity: 0.12;
+                filter: blur(2.5px);
+                transform: translateY(4px);
+                text-shadow: 0 0 10px rgba(245, 158, 11, 0.65);
+            }
+            60% {
+                text-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+            }
+            100% {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+                text-shadow: none;
+            }
+        }
+
+        .page-body h2 {
+            font-size: calc(1.2rem * var(--font-scale));
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .page-body p {
+            font-size: calc(0.87rem * var(--font-scale));
+            line-height: 1.6;
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        .page-body ul {
+            margin: 8px 0 10px 18px;
+            font-size: calc(0.85rem * var(--font-scale));
+            line-height: 1.54;
+        }
+
+        .page-body li { margin-bottom: 6px; }
+
+        .quote-box {
+            border-left: 3px solid var(--accent);
+            padding: 8px 12px;
+            margin: 10px 0;
+            background-color: var(--accent-soft);
+            font-style: italic;
+            font-size: calc(0.83rem * var(--font-scale));
+            border-radius: 0 6px 6px 0;
+        }
+
+        .timeline-item {
+            border-left: 2px solid var(--accent);
+            padding-left: 10px;
+            margin-bottom: 9px;
+        }
+
+        .timeline-year {
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 700;
+            font-size: calc(0.79rem * var(--font-scale));
+            color: var(--accent);
+        }
+
+        .marginalia-note {
+            margin-top: 8px;
+            padding: 7px 10px;
+            border-top: 1px dashed var(--accent);
+            background: rgba(245, 158, 11, 0.08);
+            border-radius: 6px;
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: calc(0.78rem * var(--font-scale));
+            color: var(--accent);
+            display: none;
+        }
+
+        .marginalia-note.has-note {
+            display: block;
+        }
+
+        .page-footer {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px dashed var(--border-page);
+            padding-top: 7px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Kontrol Bawah */
+        .bottom-controls {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 60;
+        }
+
+        .status-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--hud-text);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+            font-weight: 600;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #f59e0b;
+            transition: width 0.35s ease;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 10px;
+        }
+
+        .btn-nav {
+            flex: 1;
+            padding: 10px 14px;
+            background-color: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn-nav:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-nav:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        /* --- TAMPILAN RAK PERPUSTAKAAN SIHIR (Z-INDEX 50) --- */
+        .library-shelf-view {
+            display: none;
+            width: min(820px, 100%);
+            margin: auto;
+            padding: 22px 24px 24px;
+            border: 1px solid rgba(232, 194, 132, 0.32);
+            border-radius: 18px;
+            background: linear-gradient(160deg, rgba(32, 19, 11, 0.97), rgba(58, 34, 19, 0.97));
+            box-shadow: 0 26px 60px rgba(0, 0, 0, 0.65), inset 0 1px rgba(255, 255, 255, 0.1);
+            color: #f6e6c8;
+            position: relative;
+            z-index: 50;
+        }
+
+        .library-shelf-view.show {
+            display: block;
+            animation: fadeShelf 0.35s ease;
+        }
+
+        @keyframes fadeShelf {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shelf-top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 1px solid rgba(232, 194, 132, 0.22);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+
+        .shelf-heading {
+            font: 700 0.85rem Georgia, serif;
+            letter-spacing: 0.24em;
+            color: #f3d299;
+        }
+
+        .shelf-sub {
+            font-size: 0.78rem;
+            color: #cbb692;
+            margin-top: 3px;
+        }
+
+        .shelf-cabinet {
+            background: linear-gradient(180deg, rgba(14, 8, 4, 0.55) 0%, rgba(28, 16, 9, 0.4) 100%);
+            border: 1px solid rgba(183, 139, 80, 0.25);
+            border-radius: 12px;
+            padding: 26px 20px 0;
+            margin-bottom: 18px;
+            box-shadow: inset 0 12px 24px rgba(0, 0, 0, 0.55);
+            perspective: 1200px;
+        }
+
+        .shelf-books-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            padding-bottom: 2px;
+        }
+
+        .shelf-plank {
+            height: 18px;
+            margin: 0 -20px;
+            background: linear-gradient(180deg, #7c4d2b 0%, #52311a 65%, #341e0f 100%);
+            border-top: 1px solid rgba(255, 224, 178, 0.25);
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.5);
+        }
+
+        .shelf-book {
+            width: 58px;
+            height: 195px;
+            border: 1px solid rgba(232, 194, 132, 0.45);
+            border-radius: 5px 4px 2px 2px;
+            color: #f7e6b9;
+            box-shadow:
+                inset 5px 0 8px rgba(255, 255, 255, 0.12),
+                inset -5px 0 8px rgba(0, 0, 0, 0.35),
+                6px 4px 12px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 6px;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s, border-color 0.25s;
+            position: relative;
+        }
+
+        .shelf-book:not(.selected) {
+            animation: grimoireRestless 6s ease-in-out infinite;
+            animation-delay: var(--wobble-delay, 0s);
+        }
+
+        @keyframes grimoireRestless {
+            0%, 82%, 100% { transform: rotateZ(0deg) translateY(0); }
+            85% { transform: rotateZ(-1.6deg) translateY(-2px); }
+            88% { transform: rotateZ(1.6deg) translateY(-3px); }
+            91% { transform: rotateZ(-1deg) translateY(-1px); }
+            94% { transform: rotateZ(0.8deg) translateY(0); }
+        }
+
+        .grimoire-chain {
+            position: absolute;
+            left: -4px;
+            right: -4px;
+            height: 6px;
+            background: repeating-linear-gradient(
+                90deg,
+                #d97706 0px,
+                #fef08a 4px,
+                #78350f 6px,
+                transparent 8px
+            );
+            border-top: 1px solid rgba(254, 240, 138, 0.6);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.7);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+            pointer-events: none;
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+
+        .chain-top { top: 44px; transform: rotate(-4deg); }
+        .chain-bottom { bottom: 44px; transform: rotate(4deg); }
+
+        .shelf-book.unlocked .grimoire-chain {
+            opacity: 0;
+            transform: scaleX(1.35);
+        }
+
+        .shelf-book:hover {
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 14px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(245, 158, 11, 0.35);
+            border-color: #fbbf24;
+        }
+
+        .shelf-book.selected {
+            border-color: #fde047;
+            box-shadow: 0 18px 28px rgba(0, 0, 0, 0.65), 0 0 22px rgba(251, 191, 36, 0.65);
+            animation: potterLevitate 2.2s ease-in-out infinite;
+        }
+
+        @keyframes potterLevitate {
+            0%, 100% { transform: translateY(-14px) rotateZ(-1.5deg) scale(1.04); }
+            50%      { transform: translateY(-22px) rotateZ(1.5deg) scale(1.05); }
+        }
+
+        .shelf-book.selected::after {
+            content: "✦";
+            position: absolute;
+            bottom: -24px;
+            color: #fde047;
+            font-size: 0.85rem;
+            text-shadow: 0 0 8px #f59e0b;
+        }
+
+        .seal-puzzle-box {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: rgba(120, 53, 15, 0.35);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }
+
+        .seal-puzzle-box.show {
+            display: flex;
+            animation: fadeShelf 0.3s ease;
+        }
+
+        .seal-rings-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .seal-dial-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid #fbbf24;
+            background: radial-gradient(circle, #451a03, #1c0a00);
+            color: #fde047;
+            font-size: 1.15rem;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .seal-dial-btn:hover {
+            transform: scale(1.08);
+            background: #78350f;
+        }
+
+        /* --- BUKU BERSAYAP YANG TERBANG KE ATAS, MEMUTAR KE BELAKANG RAK, LALU KE DEPAN --- */
+        .winged-book-stage {
+            position: fixed;
+            z-index: 120;
+            width: 150px;
+            height: 110px;
+            perspective: 1000px;
+            pointer-events: none;
+            transform-style: preserve-3d;
+            will-change: transform, left, top, opacity;
+            transition: opacity 0.2s ease;
+        }
+
+        .winged-book-body {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            animation: birdPitch 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes birdPitch {
+            0%   { transform: rotateX(55deg) rotateY(-6deg) translateY(0px); }
+            100% { transform: rotateX(42deg) rotateY(6deg) translateY(-10px); }
+        }
+
+        .winged-spine {
+            position: absolute;
+            left: 50%;
+            top: 8px;
+            width: 14px;
+            height: 94px;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #1e120a, #78350f, #1e120a);
+            border-radius: 4px;
+            box-shadow: 0 12px 25px rgba(251, 191, 36, 0.65);
+        }
+
+        .wing {
+            position: absolute;
+            top: 8px;
+            width: 68px;
+            height: 94px;
+            border: 1.5px solid #fde047;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 18px rgba(251, 191, 36, 0.45);
+            transform-style: preserve-3d;
+        }
+
+        .wing-left {
+            right: 50%;
+            margin-right: 5px;
+            transform-origin: right center;
+            border-radius: 10px 2px 2px 10px;
+            animation: flapLeft 0.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+        }
+
+        .wing-right {
+            left: 50%;
+            margin-left: 5px;
+            transform-origin: left center;
+            border-radius: 2px 10px 10px 2px;
+            animation: flapRight 0.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+        }
+
+        .wing-pages {
+            position: absolute;
+            inset: 4px;
+            background: repeating-linear-gradient(
+                to bottom,
+                #fffbeb 0px,
+                #fef3c7 3px,
+                #e5dec9 5px
+            );
+            border-radius: inherit;
+            transform: translateZ(3px);
+        }
+
+        @keyframes flapLeft {
+            0%   { transform: rotateY(-48deg) rotateZ(8deg); }
+            100% { transform: rotateY(44deg) rotateZ(-10deg); }
+        }
+
+        @keyframes flapRight {
+            0%   { transform: rotateY(48deg) rotateZ(-8deg); }
+            100% { transform: rotateY(-44deg) rotateZ(10deg); }
+        }
+
+        .magic-sparkle {
+            position: fixed;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 10%, #fde047 60%, transparent 100%);
+            box-shadow: 0 0 10px #fbbf24, 0 0 18px #f59e0b;
+            pointer-events: none;
+            animation: sparkleFade 0.95s ease-out forwards;
+        }
+
+        @keyframes sparkleFade {
+            0%   { opacity: 1; transform: scale(1.2) translate(0, 0); }
+            100% { opacity: 0; transform: scale(0.1) translate(var(--dx), var(--dy)); }
+        }
+
+        .spine-emerald { background: linear-gradient(90deg, #132a2e, #1f4e48 25%, #163a35 75%, #0c2120); }
+        .spine-crimson { background: linear-gradient(90deg, #3b1219, #6b1d29 25%, #4f151e 75%, #290b10); height: 205px; }
+        .spine-navy    { background: linear-gradient(90deg, #131d36, #223561 25%, #192747 75%, #0d1426); height: 188px; }
+        .spine-amber   { background: linear-gradient(90deg, #3d2610, #6e451d 25%, #523315 75%, #2b1a0b); height: 198px; }
+
+        .shelf-book-band {
+            width: 100%;
+            height: 3px;
+            background: rgba(245, 208, 138, 0.45);
+            border-radius: 2px;
+        }
+
+        .shelf-book-title {
+            font: 700 0.64rem Georgia, serif;
+            line-height: 1.25;
+            letter-spacing: 0.08em;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            text-align: center;
+            max-height: 125px;
+            overflow: hidden;
+        }
+
+        .shelf-book-code {
+            font: 600 0.52rem 'Segoe UI', sans-serif;
+            letter-spacing: 0.08em;
+            opacity: 0.8;
+        }
+
+        .shelf-detail-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            background: rgba(18, 10, 6, 0.65);
+            border: 1px solid rgba(232, 194, 132, 0.25);
+            border-radius: 12px;
+            padding: 14px 18px;
+        }
+
+        .shelf-detail-info {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .shelf-detail-tag {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #fbbf24;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .shelf-detail-info h3 {
+            font-family: Georgia, serif;
+            font-size: 1.15rem;
+            color: #fff6e5;
+            margin-bottom: 6px;
+        }
+
+        .shelf-detail-info p {
+            font-size: 0.84rem;
+            color: #d6c3a3;
+            line-height: 1.5;
+        }
+
+        /* Modal Pena Bulu Catatan Pinggir & Perayaan */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: grid;
+            place-items: center;
+            padding: 22px;
+            background: rgba(8, 15, 30, 0.72);
+            backdrop-filter: blur(7px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .modal-backdrop.show {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            position: relative;
+            width: min(380px, 100%);
+            padding: 24px;
+            text-align: center;
+            color: #26324a;
+            background: linear-gradient(145deg, #fffdf4, #fef3c7 58%, #ffedd5);
+            border-radius: 22px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            transform: translateY(20px) scale(0.94);
+            transition: transform 0.35s cubic-bezier(0.2, 1.3, 0.4, 1);
+        }
+
+        .modal-backdrop.show .modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .quill-textarea {
+            width: 100%;
+            min-height: 92px;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d97706;
+            background: #fffbeb;
+            color: #451a03;
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 0.88rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        .fairy-character {
+            display: grid;
+            place-items: center;
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff, #fde68a 70%);
+            box-shadow: 0 0 28px rgba(245, 158, 11, 0.45);
+            font-size: 46px;
+            animation: fairyFloat 2.4s ease-in-out infinite;
+        }
+
+        .modal-card h2 { margin: 4px 0 8px; font-size: 1.3rem; color: #78350f; }
+        .modal-card p { color: #57534e; line-height: 1.5; font-size: 0.88rem; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .modal-actions button {
+            border: 0;
+            border-radius: 999px;
+            padding: 9px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+            background: #b45309;
+        }
+
+        .modal-actions button.secondary {
+            color: #78350f;
+            background: #fde68a;
+        }
+
+        @keyframes fairyFloat {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50%      { transform: translateY(-10px) rotate(3deg); }
+        }
+
+        @media (max-width: 600px) {
+            .toolbar { justify-content: center; }
+            .shelf-book { width: 48px; height: 165px; }
+            .spine-crimson { height: 175px; }
+            .spine-navy { height: 160px; }
+            .spine-amber { height: 168px; }
+            .desk-relic { width: 54px; height: 64px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Lapisan Lilin Melayang Interaktif -->
+    <div class="floating-candles-layer" aria-hidden="true">
+        <div class="magic-candle" style="left: 8%; top: 76px; --dur: 4.2s; --delay: 0s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+        <div class="magic-candle" style="left: 21%; top: 44px; --dur: 5.1s; --delay: 1.1s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+        <div class="magic-candle" style="left: 36%; top: 88px; --dur: 3.9s; --delay: 0.5s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+        <div class="magic-candle" style="right: 35%; top: 82px; --dur: 4.8s; --delay: 1.7s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+        <div class="magic-candle" style="right: 19%; top: 42px; --dur: 4.4s; --delay: 0.8s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+        <div class="magic-candle" style="right: 7%; top: 74px; --dur: 5.3s; --delay: 2.1s;" title="Klik untuk meniup/menyalakan lilin" onclick="toggleCandle(this, event)"><div class="candle-flame"></div></div>
+    </div>
+
+    <!-- Relik Meja Baca yang Bisa Digeser (Draggable Desk Relics) -->
+    <div class="desk-relic" id="hourglassRelic" style="left: 18px; bottom: 22px;" title="Geser posisi | Klik untuk memutar balik waktu ke halaman awal">
+        <div class="relic-icon">⏳</div>
+        <div class="relic-label">Pemutar Waktu</div>
+    </div>
+
+    <div class="desk-relic" id="crystalRelic" style="right: 18px; bottom: 22px;" title="Geser posisi | Klik untuk ramalan sejarah & lompat halaman acak">
+        <div class="relic-icon">🔮</div>
+        <div class="relic-label">Bola Ramalan</div>
+    </div>
+
+    <!-- Cahaya Ujung Tongkat Sihir & Lensa Revelio -->
+    <div class="wand-tip-glow" id="wandGlow" aria-hidden="true"></div>
+    <div class="revelio-lens" id="revelioLens" aria-hidden="true"></div>
+
+    <!-- Notifikasi Mantra -->
+    <div class="spell-toast" id="spellToast"></div>
+
+    <div class="library-label" id="libraryLabel">✦ The Old Archive · Enchanted Reading Room ✦</div>
+
+    <!-- Bilah Mantra Interaktif & Pengenalan Suara -->
+    <div class="spell-bar" role="group" aria-label="Mantra Ruang Baca">
+        <button class="spell-chip" onclick="castSpell('lumos')" title="Terangi ruang baca & nyalakan semua lilin">✨ Lumos</button>
+        <button class="spell-chip" onclick="castSpell('nox')" title="Padamkan cahaya ke mode malam">🌑 Nox</button>
+        <button class="spell-chip" id="revelioBtn" onclick="toggleRevelioLens()" title="Aktifkan lensa pengungkap tinta rahasia">🔍 Revelio</button>
+        <button class="spell-chip" onclick="castSpell('alohomora')" title="Buka kunci segel rantai buku">🔓 Alohomora</button>
+        <button class="spell-chip" onclick="castSpell('accio')" title="Panggil buku terpilih terbang ke layar">🕊️ Accio</button>
+        <button class="spell-chip" id="voiceSpellBtn" onclick="toggleVoiceSpells()" title="Ucapkan mantra lewat mikrofon (Lumos, Nox, Revelio, Accio, Alohomora)">🎙️ Suara Mantra</button>
+    </div>
+
+    <!-- Toolbar Lengkap -->
+    <div class="toolbar" id="mainToolbar">
+        <div class="toolbar-group">
+            <select class="toc-select" id="tocSelect" onchange="goToLeaf(parseInt(this.value))" aria-label="Daftar Isi">
+                <option value="0">📖 Sampul Depan</option>
+                <option value="1">Lembar 1: Bab I (Hal 1-2)</option>
+                <option value="2">Lembar 2: Bab II (Hal 3-4)</option>
+                <option value="3">Lembar 3: Bab III (Hal 5-6)</option>
+                <option value="4">Lembar 4: Bab IV (Hal 7-8)</option>
+                <option value="5">Lembar 5: Bab V (Hal 9-10)</option>
+                <option value="6">📕 Sampul Belakang</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="openQuillModal()" id="quillBtn" title="Tulis Catatan Pinggir dengan Pena Bulu">🪶 Catatan</button>
+            <button class="tool-btn" onclick="toggleBookmark()" id="bookmarkBtn" title="Tandai Halaman Ini">🔖 Tandai</button>
+            <button class="tool-btn" onclick="jumpToBookmark()" id="jumpBookmarkBtn" style="display:none;" title="Buka Penanda">📌 Ke Penanda</button>
+            <button class="tool-btn" onclick="changeFontSize(-0.07)" title="Perkecil Huruf">A-</button>
+            <button class="tool-btn" onclick="changeFontSize(0.07)" title="Perbesar Huruf">A+</button>
+            <button class="tool-btn active" id="soundBtn" onclick="toggleSound()" title="Suara Sihir & Kertas">🔊</button>
+            <button class="tool-btn" onclick="toggleFullscreen()" title="Layar Penuh">⛶</button>
+            <button class="tool-btn" id="shelfBtn" onclick="toggleShelfView()" title="Terbangkan Buku ke Rak">📚 Rak Buku</button>
+            <button class="tool-btn" id="themeBtn" onclick="toggleTheme()" title="Mode Gelap/Terang">🌙</button>
+        </div>
+    </div>
+
+    <!-- Panggung Buku 3D (Mendukung Tarik Ujung Kertas Fisik / Drag Curl) -->
+    <div class="book-stage" id="swipeArea">
+        <div class="book-scene" id="bookScene">
+            <div class="book" id="book">
+
+                <!-- LEMBAR 1: Sampul Depan & Halaman 1 -->
+                <div class="leaf" id="leaf1" data-stiff="true" style="z-index: 6;">
+                    <div class="page page-front cover-front">
+                        <div class="arcana-medallion" onclick="rotateCoverAstrolabe(event)" title="Klik untuk memutar astrolab & menyingkap pesan rahasia">
+                            <div class="astrolabe-ring-outer"></div>
+                            <div class="astrolabe-ring-inner"></div>
+                            <div class="astrolabe-moon"></div>
+                        </div>
+                        <div class="secret-rune-whisper" id="coverSecretWhisper">Sentuh astrolab untuk menyingkap sandi...</div>
+                        <span style="font-size: 0.72rem; letter-spacing: 2.5px; opacity: 0.75;" id="coverSeries">SERI KAJIAN HISTORIOGRAFI</span>
+                        <div class="cover-ornament"></div>
+                        <h1 style="font-size: 1.72rem; line-height: 1.25;" id="coverTitle">Dinamika Reformasi & Perubahan Sosial</h1>
+                        <p style="font-size: 0.8rem; opacity: 0.85; max-width: 240px;">Tarik ujung halaman atau ketuk untuk membuka</p>
+                    </div>
+
+                    <div class="page page-back">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p1Header">Bab I • Pendahuluan</span>
+                            <span>Halaman 1</span>
+                        </div>
+                        <div class="page-body" id="p1Body"></div>
+                        <div class="marginalia-note" data-leaf-note="1"></div>
+                        <div class="page-footer">
+                            <span>← Tutup Sampul</span>
+                            <span>Lembar 1 / 6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEMBAR 2: Halaman 2 & Halaman 3 -->
+                <div class="leaf" id="leaf2" style="z-index: 5;">
+                    <div class="page page-front">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p2Header">Bab I • Lini Masa</span>
+                            <span>Halaman 2</span>
+                        </div>
+                        <div class="page-body" id="p2Body"></div>
+                        <div class="marginalia-note" data-leaf-note="2"></div>
+                        <div class="page-footer">
+                            <span>Lembar 2 / 6</span>
+                            <span>Lanjut →</span>
+                        </div>
+                    </div>
+
+                    <div class="page page-back">
+                        <div class="page-header">
+                            <span id="p3Header">Bab II • Pilar Kebijakan</span>
+                            <span>Halaman 3</span>
+                        </div>
+                        <div class="page-body" id="p3Body"></div>
+                        <div class="page-footer">
+                            <span>← Kembali</span>
+                            <span>Lembar 2 / 6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEMBAR 3: Halaman 4 & Halaman 5 -->
+                <div class="leaf" id="leaf3" style="z-index: 4;">
+                    <div class="page page-front">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p4Header">Bab II • Pendidikan & Pers</span>
+                            <span>Halaman 4</span>
+                        </div>
+                        <div class="page-body" id="p4Body"></div>
+                        <div class="marginalia-note" data-leaf-note="3"></div>
+                        <div class="page-footer">
+                            <span>Lembar 3 / 6</span>
+                            <span>Lanjut →</span>
+                        </div>
+                    </div>
+
+                    <div class="page page-back">
+                        <div class="page-header">
+                            <span id="p5Header">Bab III • Perspektif Bawah</span>
+                            <span>Halaman 5</span>
+                        </div>
+                        <div class="page-body" id="p5Body"></div>
+                        <div class="page-footer">
+                            <span>← Kembali</span>
+                            <span>Lembar 3 / 6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEMBAR 4: Halaman 6 & Halaman 7 -->
+                <div class="leaf" id="leaf4" style="z-index: 3;">
+                    <div class="page page-front">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p6Header">Bab III • Kontradiksi</span>
+                            <span>Halaman 6</span>
+                        </div>
+                        <div class="page-body" id="p6Body"></div>
+                        <div class="marginalia-note" data-leaf-note="4"></div>
+                        <div class="page-footer">
+                            <span>Lembar 4 / 6</span>
+                            <span>Lanjut →</span>
+                        </div>
+                    </div>
+
+                    <div class="page page-back">
+                        <div class="page-header">
+                            <span id="p7Header">Bab IV • Analisis Komparatif</span>
+                            <span>Halaman 7</span>
+                        </div>
+                        <div class="page-body" id="p7Body"></div>
+                        <div class="page-footer">
+                            <span>← Kembali</span>
+                            <span>Lembar 4 / 6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEMBAR 5: Halaman 8 & Halaman 9 -->
+                <div class="leaf" id="leaf5" style="z-index: 2;">
+                    <div class="page page-front">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p8Header">Bab IV • Dimensi Ekonomi</span>
+                            <span>Halaman 8</span>
+                        </div>
+                        <div class="page-body" id="p8Body"></div>
+                        <div class="marginalia-note" data-leaf-note="5"></div>
+                        <div class="page-footer">
+                            <span>Lembar 5 / 6</span>
+                            <span>Lanjut →</span>
+                        </div>
+                    </div>
+
+                    <div class="page page-back">
+                        <div class="page-header">
+                            <span id="p9Header">Bab V • Penutup</span>
+                            <span>Halaman 9</span>
+                        </div>
+                        <div class="page-body" id="p9Body"></div>
+                        <div class="page-footer">
+                            <span>← Kembali</span>
+                            <span>Lembar 5 / 6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEMBAR 6: Halaman 10 & Sampul Belakang -->
+                <div class="leaf" id="leaf6" data-stiff="true" style="z-index: 1;">
+                    <div class="page page-front">
+                        <div class="bookmark-ribbon"></div>
+                        <div class="page-header">
+                            <span id="p10Header">Bab V • Catatan Akhir</span>
+                            <span>Halaman 10</span>
+                        </div>
+                        <div class="page-body" id="p10Body"></div>
+                        <div class="marginalia-note" data-leaf-note="6"></div>
+                        <div class="page-footer">
+                            <span>Lembar 6 / 6</span>
+                            <span>Tutup Buku →</span>
+                        </div>
+                    </div>
+
+                    <div class="page page-back cover-back">
+                        <span style="font-size: 0.72rem; letter-spacing: 2px; opacity: 0.7;">TAMAT • 10 HALAMAN</span>
+                        <div class="cover-ornament"></div>
+                        <h3 style="font-size: 1.45rem;">Selesai Membaca</h3>
+                        <p style="font-size: 0.85rem; opacity: 0.8; max-width: 220px;">Terima kasih telah menelusuri seluruh lembaran arsip ini.</p>
+                        <button class="btn-nav" onclick="goToLeaf(0)" style="flex: none; padding: 10px 22px; margin-top: 8px;">↺ Kembali ke Sampul Depan</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Kontrol Navigasi Bawah -->
+    <div class="bottom-controls" id="bottomControls">
+        <div class="status-row">
+            <span id="pageIndicator">Posisi: Sampul Depan</span>
+            <span id="percentIndicator">0%</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="nav-buttons">
+            <button class="btn-nav" id="prevBtn" onclick="prevPage()" disabled>← Sebelumnya</button>
+            <button class="btn-nav" id="nextBtn" onclick="nextPage()">Selanjutnya →</button>
+        </div>
+    </div>
+
+    <!-- Tampilan Rak Perpustakaan -->
+    <section class="library-shelf-view" id="libraryShelfView" aria-hidden="true">
+        <div class="shelf-top-header">
+            <div>
+                <div class="shelf-heading">KOLEKSI RAK PERPUSTAKAAN SIHIR</div>
+                <div class="shelf-sub">Pilih satu jilid • Setiap buku memiliki 10 halaman penuh yang berbeda</div>
+            </div>
+            <button class="tool-btn" onclick="toggleShelfView()" style="color: #f8e8c8; border-color: #b78b50; background: rgba(255,255,255,0.08);">↩ Kembali Membaca</button>
+        </div>
+
+        <div class="shelf-cabinet">
+            <div class="shelf-books-row">
+                <button class="shelf-book spine-emerald selected" data-book-idx="0" style="--wobble-delay: 0.3s;" title="Berbisik tentang gelombang reformasi..." onclick="selectShelfBook(0, this)" ondblclick="flyAndOpenBook()">
+                    <span class="shelf-book-band"></span>
+                    <span class="shelf-book-title">DINAMIKA REFORMASI</span>
+                    <span class="shelf-book-code">JILID I</span>
+                </button>
+                <button class="shelf-book spine-crimson" data-book-idx="1" style="--wobble-delay: 2.1s;" title="Berbisik tentang dekrit hukum konstitusional..." onclick="selectShelfBook(1, this)" ondblclick="flyAndOpenBook()">
+                    <span class="shelf-book-band"></span>
+                    <span class="shelf-book-title">TANZIMAT & HUKUM</span>
+                    <span class="shelf-book-code">JILID II</span>
+                </button>
+                <button class="shelf-book spine-navy" data-book-idx="2" style="--wobble-delay: 3.8s;" title="Berbisik tentang suara petani & arus bawah..." onclick="selectShelfBook(2, this)" ondblclick="flyAndOpenBook()">
+                    <span class="shelf-book-band"></span>
+                    <span class="shelf-book-title">SEJARAH KERAKYATAN</span>
+                    <span class="shelf-book-code">JILID III</span>
+                </button>
+                <button class="shelf-book spine-amber" id="sealedBookBtn" data-book-idx="3" style="--wobble-delay: 1.2s;" title="Arsip Tersegel Rantai: Ekonomi & Utang Kolonial..." onclick="selectShelfBook(3, this)" ondblclick="flyAndOpenBook()">
+                    <span class="grimoire-chain chain-top"></span>
+                    <span class="grimoire-chain chain-bottom"></span>
+                    <span class="shelf-book-band"></span>
+                    <span class="shelf-book-title">ARSIP KOLONIAL</span>
+                    <span class="shelf-book-code">JILID IV</span>
+                </button>
+            </div>
+            <div class="shelf-plank"></div>
+        </div>
+
+        <!-- Teka-Teki Segel Rantai Jilid IV -->
+        <div class="seal-puzzle-box" id="sealPuzzleBox">
+            <div>
+                <div style="font-size: 0.72rem; color: #fde047; font-weight: 700; letter-spacing: 0.1em;">🔒 SEGEL RANTAI ARSIP TERLARANG</div>
+                <div style="font-size: 0.78rem; color: #f3e4c8;" id="sealHintText">Sejajarkan ketiga simbol menjadi <strong>✦ ✦ ✦</strong> atau ucapkan mantra <em>Alohomora</em></div>
+            </div>
+            <div class="seal-rings-group">
+                <button type="button" class="seal-dial-btn" onclick="cycleSealDial(0)" id="dial0">☽</button>
+                <button type="button" class="seal-dial-btn" onclick="cycleSealDial(1)" id="dial1">☀</button>
+                <button type="button" class="seal-dial-btn" onclick="cycleSealDial(2)" id="dial2">✧</button>
+            </div>
+        </div>
+
+        <div class="shelf-detail-card">
+            <div class="shelf-detail-info">
+                <div class="shelf-detail-tag" id="shelfBookTag">SERI KAJIAN HISTORIOGRAFI • 6 LEMBAR</div>
+                <h3 id="shelfBookTitle">Dinamika Reformasi & Perubahan Sosial</h3>
+                <p id="shelfBookDesc">Kajian lengkap mengenai latar krisis abad ke-19, kronologi dekrit reformasi, perubahan birokrasi, hingga reaksi di tingkat akar rumput.</p>
+            </div>
+            <button class="btn-nav" id="summonBookBtn" onclick="flyAndOpenBook()" style="flex: none; padding: 12px 22px;">🕊️ Terbangkan & Buka Buku</button>
+        </div>
+    </section>
+
+    <!-- Modal Pena Bulu Catatan Pinggir -->
+    <div class="modal-backdrop" id="quillModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-card">
+            <div style="font-size: 2rem;">🪶</div>
+            <h2>Pena Bulu Catatan Pinggir</h2>
+            <p id="quillModalSubtitle">Tuliskan catatan pribadimu pada lembar halaman ini:</p>
+            <textarea class="quill-textarea" id="quillInput" placeholder="Contoh: Catatan penting mengenai pergeseran sistem pajak..."></textarea>
+            <div class="modal-actions">
+                <button type="button" onclick="saveQuillNote()">✨ Goreskan Tinta</button>
+                <button type="button" class="secondary" onclick="clearQuillNote()">Hapus</button>
+                <button type="button" class="secondary" onclick="closeQuillModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Perayaan Selesai Membaca -->
+    <div class="modal-backdrop" id="fairyCelebration" role="dialog" aria-modal="true" aria-labelledby="fairyTitle" aria-hidden="true">
+        <div class="modal-card">
+            <div class="fairy-character" aria-hidden="true">📚</div>
+            <h2 id="fairyTitle">Selesai Dibaca!</h2>
+            <p>Seluruh 10 halaman dalam jilid ini telah selesai ditelusuri. Kamu dapat mengulang bacaan atau menerbangkan buku kembali ke rak perpustakaan.</p>
+            <div class="modal-actions">
+                <button type="button" onclick="closeFairyCelebration()">Tutup</button>
+                <button type="button" class="secondary" onclick="restartReading()">↺ Baca Ulang</button>
+                <button type="button" class="secondary" onclick="closeFairyCelebration(); toggleShelfView();">🕊️ Terbangkan ke Rak</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const leaves = Array.from({ length: 6 }, (_, i) => document.getElementById(`leaf${i + 1}`));
+        const book = document.getElementById('book');
+        const bookScene = document.getElementById('bookScene');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressFill = document.getElementById('progressFill');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const percentIndicator = document.getElementById('percentIndicator');
+        const tocSelect = document.getElementById('tocSelect');
+        const bookmarkBtn = document.getElementById('bookmarkBtn');
+        const jumpBookmarkBtn = document.getElementById('jumpBookmarkBtn');
+        const shelfView = document.getElementById('libraryShelfView');
+        const shelfBtn = document.getElementById('shelfBtn');
+        const fairyCelebration = document.getElementById('fairyCelebration');
+        const quillModal = document.getElementById('quillModal');
+        const wandGlow = document.getElementById('wandGlow');
+        const revelioLens = document.getElementById('revelioLens');
+
+        const totalLeaves = leaves.length;
+        let currentLeaf = 0;
+        let soundEnabled = true;
+        let fontScale = 1;
+        let completionShown = false;
+        let isShelfView = false;
+        let isFlying = false;
+        let navigationTimer = null;
+        let selectedBookIdx = 0;
+        let sealedBookUnlocked = false;
+        let astrolabeStep = 0;
+        let revelioActive = false;
+
+        const dialSymbols = ['✦', '☽', '☀', '✧'];
+        let sealState = [1, 2, 3];
+
+        let marginaliaNotes = {};
+        try {
+            const savedNotes = localStorage.getItem('archive_marginalia');
+            if (savedNotes) marginaliaNotes = JSON.parse(savedNotes);
+        } catch (_) {}
+
+        let bookmarkedLeaf = null;
+        try {
+            const saved = localStorage.getItem('flipbook_bookmark');
+            if (saved !== null && Number.isInteger(Number(saved))) bookmarkedLeaf = Number(saved);
+        } catch (_) {}
+
+        // --- KATALOG LENGKAP 4 JILID (MASING-MASING 10 HALAMAN UNIK + TINTA RAHASIA REVELIO) ---
+        const catalogBooks = [
+            {
+                series: "SERI KAJIAN HISTORIOGRAFI • 6 LEMBAR",
+                title: "Dinamika Reformasi & Perubahan Sosial",
+                desc: "Kajian lengkap mengenai latar krisis abad ke-19, kronologi dekrit reformasi, perubahan birokrasi, hingga reaksi di tingkat akar rumput.",
+                coverColor: "linear-gradient(145deg, #1e293b 0%, #2c3a4f 100%)",
+                wingColor: "linear-gradient(135deg, #1f4e48, #132a2e)",
+                secretWhisper: "“Kekuasaan yang abadi lahir dari hukum yang adil.”",
+                pages: [
+                    { h: "Bab I • Pendahuluan", b: `<h2>1. Akar Krisis & Tuntutan Zaman</h2><p>Setiap transformasi besar dalam perjalanan suatu negara tidak pernah lahir di ruang hampa. Ia merupakan akumulasi dari krisis ekonomi, tekanan geopolitik eksternal, serta ketimpangan struktur sosial.</p><div class="quote-box">"Reformasi sejati bukanlah sekadar mengganti wajah penguasa, melainkan merombak tata kelola hukum dan relasi negara dengan rakyat."</div><div class="invisible-ink-box">🔮 Sandi Arsip: Memo rahasia istana mencatat bahwa defisit kas menjadi pemicu utama reformasi pajak 1839.</div>` },
+                    { h: "Bab I • Lini Masa", b: `<h2>2. Tonggak Kronologis</h2><p>Perjalanan pembaruan berlangsung secara bertahap melalui serangkaian dekrit kelembagaan:</p><div class="timeline-item"><div class="timeline-year">Fase Awal (1839)</div><p style="margin-bottom:0;">Deklarasi jaminan keamanan jiwa, harta benda, serta penataan sistem pajak.</p></div><div class="timeline-item"><div class="timeline-year">Fase Penguatan (1856)</div><p style="margin-bottom:0;">Perluasan hak sipil dan akses pendidikan modern bagi seluruh lapisan.</p></div>` },
+                    { h: "Bab II • Pilar Kebijakan", b: `<h2>3. Reformasi Hukum & Birokrasi</h2><p>Penyusunan kitab undang-undang sekuler yang berjalan berdampingan dengan hukum adat dan agama.</p><ul><li><strong>Sentralisasi Administrasi:</strong> Mengurangi otonomi tuan tanah lokal.</li><li><strong>Pengadilan Terpadu:</strong> Pembentukan mahkamah campuran lintas golongan.</li></ul>` },
+                    { h: "Bab II • Pendidikan & Pers", b: `<h2>4. Kebangkitan Literasi Publik</h2><p>Pemerintah membuka sekolah menengah negeri, akademi teknik, dan sekolah kedokteran modern.</p><p>Mesin cetak berkembang pesat melahirkan surat kabar independen sebagai ruang diskusi kaum terpelajar.</p><div class="invisible-ink-box">🔮 Sandi Arsip: Oplah surat kabar oposisi meningkat tiga kali lipat di kota pelabuhan pada dekade 1860-an.</div>` },
+                    { h: "Bab III • Perspektif Bawah", b: `<h2>5. Reaksi di Akar Rumput</h2><p>Dari sudut pandang sejarah kerakyatan, pembaruan dari atas sering menimbulkan gesekan nyata di desa.</p><div class="quote-box">"Perubahan yang dirancang di meja birokrasi pusat kerap terasa asing ketika menyentuh ekonomi subsistensi rakyat kecil."</div>` },
+                    { h: "Bab III • Kontradiksi", b: `<h2>6. Resistensi Elit Lama</h2><p>Kelompok konservatif pemilik hak istimewa lama memandang reformasi sebagai ancaman terhadap status mereka.</p><p>Sebaliknya, intelektual muda menilai reformasi berjalan terlalu lambat dan tunduk pada utang luar negeri.</p>` },
+                    { h: "Bab IV • Analisis Komparatif", b: `<h2>7. Sebelum vs Sesudah Reformasi</h2><ul><li><strong>Status Warga:</strong> Menuju konsep kewarganegaraan setara di mata hukum.</li><li><strong>Sistem Pajak:</strong> Pemungutan langsung oleh pegawai negara menggantikan perantara.</li></ul>` },
+                    { h: "Bab IV • Dimensi Ekonomi", b: `<h2>8. Jebakan Infrastruktur</h2><p>Pembangunan jalur kereta api dan telegraf mempercepat komunikasi antarwilayah secara drastis.</p><p>Namun pembiayaan berbasis pinjaman bunga tinggi perlahan menggerus kemandirian fiskal negara.</p><div class="invisible-ink-box">🔮 Sandi Arsip: Hampir 40% pendapatan bea cukai dialokasikan untuk membayar cicilan obligasi Eropa.</div>` },
+                    { h: "Bab V • Penutup", b: `<h2>9. Pelajaran bagi Masa Kini</h2><p>Perubahan institusional membutuhkan keseimbangan antara visi modernisasi dan kepekaan terhadap kondisi sosial masyarakat.</p>` },
+                    { h: "Bab V • Catatan Akhir", b: `<h2>10. Ringkasan Pustaka</h2><p>Kajian ini disusun sebagai kerangka pengantar memahami dialektika perubahan hukum dan sosial.</p><div class="quote-box">"Mempelajari masa lalu bukan untuk bernostalgia, melainkan mengasah daya kritis membaca zaman."</div>` }
+                ]
+            },
+            {
+                series: "KOLEKSI HUKUM & NEGARA • 6 LEMBAR",
+                title: "Tanzimat & Kodifikasi Hukum Modern",
+                desc: "Menelusuri transformasi sistem peradilan, kesetaraan warga negara, serta pergeseran otoritas tradisional menuju negara konstitusional.",
+                coverColor: "linear-gradient(145deg, #4c1d24 0%, #7f1d1d 100%)",
+                wingColor: "linear-gradient(135deg, #6b1d29, #3b1219)",
+                secretWhisper: "“Piagam 1856 menghapus sekat status di hadapan mahkamah.”",
+                pages: [
+                    { h: "Jilid II • Piagam Pembaruan", b: `<h2>1. Dekrit Gülhane & Hatt-ı Hümayun</h2><p>Era Tanzimat menandai babak baru penataan ulang kekaisaran melalui jaminan hukum tertulis bagi seluruh warga tanpa memandang asal-usul komunitas.</p><div class="quote-box">"Keselamatan jiwa, kehormatan, dan harta benda setiap warga adalah fondasi tegaknya kedaulatan."</div><div class="invisible-ink-box">🔮 Sandi Hukum: Naskah asli Piagam 1856 disimpan dalam peti perak di Arsip Topkapı.</div>` },
+                    { h: "Jilid II • Lini Masa Hukum", b: `<h2>2. Evolusi Konstitusional</h2><div class="timeline-item"><div class="timeline-year">Piagam Gülhane (1839)</div><p style="margin-bottom:0;">Penghapusan sistem sewa pajak lama dan pembentukan dewan perancang undang-undang.</p></div><div class="timeline-item"><div class="timeline-year">Hatt-ı Hümayun (1856)</div><p style="margin-bottom:0;">Penegasan kesetaraan penuh dalam akses jabatan sipil serta pengadilan campuran.</p></div>` },
+                    { h: "Jilid II • Kodifikasi Mecelle", b: `<h2>3. Penyusunan Kitab Perdata</h2><p>Untuk pertama kalinya hukum perdata dikodifikasikan dalam pasal-pasal sistematis bernama <em>Mecelle</em> agar mudah dirujuk hakim di seluruh provinsi.</p><ul><li><strong>Kepastian Hukum:</strong> Mengurangi perbedaan putusan antarwilayah.</li><li><strong>Saksi Setara:</strong> Kesaksian warga non-Muslim diakui setara di pengadilan niaga.</li></ul>` },
+                    { h: "Jilid II • Dewan Negara", b: `<h2>4. Lahirnya Şûrâ-yı Devlet</h2><p>Pembentukan Dewan Negara berfungsi sebagai badan penasihat legislatif sekaligus peradilan tata usaha negara bagi warga yang dirugikan pejabat.</p><div class="invisible-ink-box">🔮 Sandi Hukum: Warga desa dapat mengirim petisi langsung ke ibu kota melalui jalur pos kekaisaran.</div>` },
+                    { h: "Jilid II • Otonomi & Provinsi", b: `<h2>5. Undang-Undang Vilayet 1864</h2><p>Penataan ulang batas administratif provinsi disertai pembentukan dewan perwakilan lokal yang melibatkan tokoh masyarakat setempat.</p>` },
+                    { h: "Jilid II • Pergeseran Otoritas", b: `<h2>6. Sekularisasi Birokrasi</h2><p>Kementerian kehakiman dan pendidikan modern mengambil alih fungsi administratif yang sebelumnya terpusat pada lembaga tradisional.</p>` },
+                    { h: "Jilid II • Kewarganegaraan", b: `<h2>7. Hukum Kewarganegaraan 1869</h2><p>Mendefinisikan identitas kebangsaan berdasarkan ikatan teritorial dan hukum negara, bukan semata-mata afiliasi komunal.</p>` },
+                    { h: "Jilid II • Konstitusi 1876", b: `<h2>8. Kanûn-ı Esâsî</h2><p>Puncak gerakan konstitusionalisme melahirkan parlemen dua kamar pertama dan membatasi hak prerogatif penguasa absolut.</p><div class="invisible-ink-box">🔮 Sandi Hukum: Sidang parlemen pertama dihadiri wakil dari Balkan, Anatolia, hingga Levant.</div>` },
+                    { h: "Jilid II • Tantangan Implementasi", b: `<h2>9. Jurang Teks & Praktik</h2><p>Di wilayah pedalaman yang jauh dari pusat, struktur patronase lokal masih kerap menghambat penerapan aturan baru secara utuh.</p>` },
+                    { h: "Jilid II • Warisan Konstitusi", b: `<h2>10. Fondasi Negara Hukum Modern</h2><p>Kerangka hukum Tanzimat menjadi batu pijakan bagi lahirnya sistem peradilan modern di kawasan Timur Tengah abad ke-20.</p>` }
+                ]
+            },
+            {
+                series: "PERSPEKTIF ARUS BAWAH • 6 LEMBAR",
+                title: "Sejarah Kerakyatan & Gerakan Sosial",
+                desc: "Membaca perubahan kebijakan pusat melalui pengalaman petani, pekerja, dan masyarakat lokal dalam menghadapi modernisasi.",
+                coverColor: "linear-gradient(145deg, #172554 0%, #1e3a8a 100%)",
+                wingColor: "linear-gradient(135deg, #223561, #131d36)",
+                secretWhisper: "“Sejarah tidak hanya ditulis di istana, tetapi juga di pematang sawah.”",
+                pages: [
+                    { h: "Jilid III • Historiografi Kerakyatan", b: `<h2>1. Suara yang Terlupakan Arsip</h2><p>Pendekatan sejarah kerakyatan menggeser sorotan dari tokoh istana menuju kehidupan sehari-hari petani, buruh pelabuhan, dan pedagang kecil.</p><div class="quote-box">"Di balik setiap statistik pajak dan proyek jalan raya, terdapat keringat serta daya tahan rakyat kecil."</div><div class="invisible-ink-box">🔮 Sandi Rakyat: Catatan lisan desa menyimpan kronik kelaparan yang tak pernah ditulis laporan resmi.</div>` },
+                    { h: "Jilid III • Dinamika Desa", b: `<h2>2. Gelombang Protes Agraria</h2><div class="timeline-item"><div class="timeline-year">Komersialisasi Tanah</div><p style="margin-bottom:0;">Petani dipaksa beralih ke tanaman ekspor sehingga rentan terhadap gejolak harga pasar dunia.</p></div><div class="timeline-item"><div class="timeline-year">Solidaritas Moral</div><p style="margin-bottom:0;">Lahirnya jaringan paguyuban desa yang menolak pungutan liar mandor perkebunan.</p></div>` },
+                    { h: "Jilid III • Ekonomi Subsistensi", b: `<h2>3. Etika Subsistensi Petani</h2><p>Bagi masyarakat agraris, keamanan pangan keluarga jauh lebih utama daripada spekulasi keuntungan pasar bebas.</p><ul><li><strong>Lumbung Komunal:</strong> Cadangan padi bersama saat musim paceklik.</li><li><strong>Gotong Royong:</strong> Pertukaran tenaga kerja tanpa upah uang.</li></ul>` },
+                    { h: "Jilid III • Pemberontakan Petani", b: `<h2>4. Perlawanan Tanpa Nama Besar</h2><p>Banyak gerakan perlawanan lokal digerakkan oleh pemimpin kharismatik desa, guru tarekat, dan petani penggarap yang kehilangan hak ulayat.</p><div class="invisible-ink-box">🔮 Sandi Rakyat: Kentongan bambu menjadi sandi komunikasi antar-desa saat patroli pajak tiba.</div>` },
+                    { h: "Jilid III • Buruh Pelabuhan & Kota", b: `<h2>5. Lahirnya Kesadaran Pekerja</h2><p>Di kota-kota pelabuhan dan stasiun kereta, kuli angkut mulai membentuk serikat tolong-menolong menghadapi jam kerja panjang.</p>` },
+                    { h: "Jilid III • Perempuan dalam Sejarah", b: `<h2>6. Peran Perempuan di Sektor Domestik & Pasar</h2><p>Perempuan pedesaan menopang ekonomi keluarga melalui tenun rumahan, perdagangan pasar lokal, dan pengelolaan benih.</p>` },
+                    { h: "Jilid III • Budaya Tandingan", b: `<h2>7. Sastra Lisan & Sindiran</h2><p>Pantun, tembang, dan pertunjukan rakyat digunakan sebagai media kritik halus terhadap kesewenang-wenangan penguasa setempat.</p>` },
+                    { h: "Jilid III • Sumber Sejarah Baru", b: `<h2>8. Membaca Arsip dari Bawah</h2><p>Sejarawan membaca arsip pengadilan kriminal dan catatan kepolisian secara terbalik untuk menemukan suara rakyat yang diadili.</p><div class="invisible-ink-box">🔮 Sandi Rakyat: Berita acara interogasi sering kali menjadi satu-satunya rekaman kata-kata langsung kaum tani.</div>` },
+                    { h: "Jilid III • Kesinambungan Gerakan", b: `<h2>9. Dari Protes Lokal ke Kesadaran Nasional</h2><p>Keresahan agraria abad ke-19 menjadi bahan bakar sosial bagi lahirnya organisasi pergerakan modern pada awal abad ke-20.</p>` },
+                    { h: "Jilid III • Penutup Metodologis", b: `<h2>10. Menulis Sejarah yang Manusiawi</h2><p>Sejarah kerakyatan mengembalikan martabat manusia biasa sebagai subjek aktif pembentuk peradaban.</p>` }
+                ]
+            },
+            {
+                series: "DOKUMENTASI TERSEGEL • 6 LEMBAR",
+                title: "Arsip Kolonial & Ekonomi Politik",
+                desc: "Analisis pembangunan jaringan transportasi, telegraf, serta dampak pembiayaan utang luar negeri terhadap kemandirian fiskal.",
+                coverColor: "linear-gradient(145deg, #451a03 0%, #78350f 100%)",
+                wingColor: "linear-gradient(135deg, #6e451d, #3d2610)",
+                secretWhisper: "“Rel kereta dan telegraf mempercepat modal, sekaligus mengikat utang.”",
+                pages: [
+                    { h: "Jilid IV • Arsip Terlarang", b: `<h2>1. Infrastruktur & Modal Asing</h2><p>Pembangunan jalur kereta api, bendungan, dan jaringan telegraf pada abad ke-19 mengubah lanskap geografis sekaligus mempercepat integrasi pasar kolonial.</p><div class="quote-box">"Setiap kilometer rel yang membentang membawa dua wajah: efisiensi logistik dan ketergantungan finansial."</div><div class="invisible-ink-box">🔮 Sandi Tersegel: Peta rute rel dirancang menghubungkan pusat tambang dan perkebunan langsung ke pelabuhan ekspor.</div>` },
+                    { h: "Jilid IV • Jaringan Ekspedisi", b: `<h2>2. Ekspansi Jalur Logistik</h2><div class="timeline-item"><div class="timeline-year">Jaringan Telegraf</div><p style="margin-bottom:0;">Memangkas waktu pengiriman kabar dari hitungan minggu menjadi hitungan menit.</p></div><div class="timeline-item"><div class="timeline-year">Konsesi Kereta Api</div><p style="margin-bottom:0;">Hak kelola jalur diberikan kepada konsorsium modal Eropa dengan jaminan laba.</p></div>` },
+                    { h: "Jilid IV • Politik Irigasi", b: `<h2>3. Bendungan & Perkebunan Ekspor</h2><p>Proyek rekayasa air berskala besar memprioritaskan pasokan air bagi perkebunan tebu dan kapas di atas sawah pangan warga.</p><ul><li><strong>Monokultur:</strong> Penyempitan keragaman tanaman pangan lokal.</li><li><strong>Kerja Wajib:</strong> Pengerahan tenaga penduduk sekitar proyek.</li></ul>` },
+                    { h: "Jilid IV • Krisis Fiskal", b: `<h2>4. Lingkaran Utang & Kebangkrutan</h2><p>Ketika bunga pinjaman melampaui penerimaan pajak, negara kehilangan kedaulatan atas pengelolaan anggaran pendapatannya sendiri.</p><div class="invisible-ink-box">🔮 Sandi Tersegel: Komisi Pengelola Utang Asing mengawasi langsung pemungutan pajak garam, tembakau, dan sutra.</div>` },
+                    { h: "Jilid IV • Bank & Modal", b: `<h2>5. Dominasi Perbankan Konsorsium</h2><p>Bank-bank swasta asing memegang hak cetak uang kertas dan menentukan suku bunga pinjaman pemerintah.</p>` },
+                    { h: "Jilid IV • Ekstraksi Sumber Daya", b: `<h2>6. Tambang Batubara & Pelabuhan Uap</h2><p>Kapal uap membutuhkan stasiun pengisian batubara di sepanjang jalur perdagangan maritim strategis.</p>` },
+                    { h: "Jilid IV • Dampak Ekologis", b: `<h2>7. Pembukaan Hutan untuk Bantalan Rel</h2><p>Ribuan hektar hutan jati ditebang guna memenuhi kebutuhan kayu bantalan rel kereta api dan bahan bakar lokomotif.</p>` },
+                    { h: "Jilid IV • Perlawanan Pekerja Rel", b: `<h2>8. Mogok Kerja di Jalur Besi</h2><p>Keterlambatan upah dan kecelakaan kerja memicu gelombang pemogokan pekerja bengkel kereta pada akhir abad ke-19.</p><div class="invisible-ink-box">🔮 Sandi Tersegel: Laporan konsul mencatat pemogokan di depo lokomotif melumpuhkan pengiriman logistik selama dua pekan.</div>` },
+                    { h: "Jilid IV • Geopolitik Jalur", b: `<h2>9. Persaingan Kekuatan Besar</h2><p>Jalur kereta lintas benua menjadi arena tarik-menarik pengaruh diplomatik dan militer antar-imperium.</p>` },
+                    { h: "Jilid IV • Refleksi Ekonomi Politik", b: `<h2>10. Kedaulatan di Balik Teknologi</h2><p>Teknologi transportasi hanya membawa kemakmuran apabila dimiliki dan dikelola demi kepentingan rakyat setempat.</p>` }
+                ]
+            }
+        ];
+
+        const positionLabels = [
+            'Posisi: Sampul Depan',
+            'Membaca: Halaman 1 – 2 (Bab I)',
+            'Membaca: Halaman 3 – 4 (Bab II)',
+            'Membaca: Halaman 5 – 6 (Bab III)',
+            'Membaca: Halaman 7 – 8 (Bab IV)',
+            'Membaca: Halaman 9 – 10 (Bab V)',
+            'Posisi: Sampul Belakang'
+        ];
+
+        // --- NOTIFIKASI MANTRA ---
+        let toastTimer = null;
+        function showSpellToast(msg) {
+            const toast = document.getElementById('spellToast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // --- BILAH MANTRA INTERAKTIF ---
+        function castSpell(spellName) {
+            playMagicChime();
+            if (spellName === 'lumos') {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('lumos-boost');
+                document.getElementById('themeBtn').textContent = '🌙';
+                document.querySelectorAll('.magic-candle').forEach(c => c.classList.remove('extinguished'));
+                showSpellToast('✨ Lumos Maxima! Seluruh lilin menyala terang.');
+            } else if (spellName === 'nox') {
+                document.body.classList.remove('lumos-boost');
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeBtn').textContent = '☀️';
+                showSpellToast('🌑 Nox! Ruang baca meredup dalam suasana malam.');
+            } else if (spellName === 'alohomora') {
+                unlockSealedGrimoire();
+                showSpellToast('🔓 Alohomora! Segel rantai Jilid IV terbuka.');
+            } else if (spellName === 'accio') {
+                if (!isShelfView) {
+                    showSpellToast('🕊️ Accio! Buku sudah berada di meja bacamu.');
+                    bookScene.classList.remove('magic-landing');
+                    void bookScene.offsetWidth;
+                    bookScene.classList.add('magic-landing');
+                } else {
+                    if (selectedBookIdx === 3 && !sealedBookUnlocked) {
+                        unlockSealedGrimoire();
+                    }
+                    showSpellToast(`🕊️ Accio "${catalogBooks[selectedBookIdx].title}"!`);
+                    flyAndOpenBook();
+                }
+            }
+        }
+
+        // --- LENSA KACA PEMBESAR PENGUNGKAP TINTA RAHASIA (REVELIO) ---
+        function toggleRevelioLens() {
+            revelioActive = !revelioActive;
+            document.getElementById('revelioBtn').classList.toggle('active', revelioActive);
+            revelioLens.classList.toggle('active', revelioActive);
+            playMagicChime();
+            if (revelioActive) {
+                showSpellToast('🔍 Revelio! Arahkan lensa ke halaman untuk menyingkap tinta rahasia.');
+            } else {
+                document.querySelectorAll('.invisible-ink-box').forEach(box => box.classList.remove('revealed'));
+                showSpellToast('Lensa Revelio disimpan kembali.');
+            }
+        }
+
+        function updateRevelioReveal(x, y) {
+            if (!revelioActive) return;
+            revelioLens.style.left = `${x}px`;
+            revelioLens.style.top = `${y}px`;
+
+            document.querySelectorAll('.invisible-ink-box').forEach(box => {
+                const rect = box.getBoundingClientRect();
+                if (rect.width === 0) return;
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dist = Math.hypot(x - cx, y - cy);
+                box.classList.toggle('revealed', dist < 135);
+            });
+        }
+
+        // --- PENGENALAN SUARA MANTRA VIA MIKROFON (VOICE SPELL RECOGNITION) ---
+        let recognition = null;
+        let isListeningSpells = false;
+
+        function toggleVoiceSpells() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const btn = document.getElementById('voiceSpellBtn');
+
+            if (!SpeechRec) {
+                showSpellToast('🎙️ Browser ini belum mendukung pengenalan suara mikrofon.');
+                return;
+            }
+
+            if (isListeningSpells && recognition) {
+                recognition.stop();
+                return;
+            }
+
+            recognition = new SpeechRec();
+            recognition.lang = 'id-ID';
+            recognition.continuous = true;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                isListeningSpells = true;
+                btn.classList.add('listening');
+                btn.textContent = '🎙️ Mendengarkan...';
+                showSpellToast('🎙️ Ucapkan: "Lumos", "Nox", "Revelio", "Alohomora", "Accio", "Lanjut"');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                if (transcript.includes('lumos')) castSpell('lumos');
+                else if (transcript.includes('nox') || transcript.includes('gelap')) castSpell('nox');
+                else if (transcript.includes('revelio') || transcript.includes('rahasia')) toggleRevelioLens();
+                else if (transcript.includes('alohomora') || transcript.includes('buka kunci')) castSpell('alohomora');
+                else if (transcript.includes('accio') || transcript.includes('terbang')) castSpell('accio');
+                else if (transcript.includes('lanjut') || transcript.includes('berikutnya')) nextPage();
+                else if (transcript.includes('kembali') || transcript.includes('sebelumnya')) prevPage();
+                else showSpellToast(`🎙️ Terdengar: "${transcript}"`);
+            };
+
+            recognition.onerror = () => {
+                isListeningSpells = false;
+                btn.classList.remove('listening');
+                btn.textContent = '🎙️ Suara Mantra';
+            };
+
+            recognition.onend = () => {
+                isListeningSpells = false;
+                btn.classList.remove('listening');
+                btn.textContent = '🎙️ Suara Mantra';
+            };
+
+            recognition.start();
+        }
+
+        // --- RELIK MEJA BACA YANG BISA DIGESER & DIKLIK ---
+        function makeRelicDraggableAndClickable(el, onClickAction) {
+            let isDown = false;
+            let moved = false;
+            let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+            el.addEventListener('pointerdown', (e) => {
+                isDown = true;
+                moved = false;
+                const rect = el.getBoundingClientRect();
+                startX = e.clientX;
+                startY = e.clientY;
+                origLeft = rect.left;
+                origTop = rect.top;
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+                el.style.left = `${origLeft}px`;
+                el.style.top = `${origTop}px`;
+                el.setPointerCapture(e.pointerId);
+            });
+
+            el.addEventListener('pointermove', (e) => {
+                if (!isDown) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) moved = true;
+                if (moved) {
+                    const nextX = Math.max(8, Math.min(window.innerWidth - 72, origLeft + dx));
+                    const nextY = Math.max(8, Math.min(window.innerHeight - 84, origTop + dy));
+                    el.style.left = `${nextX}px`;
+                    el.style.top = `${nextY}px`;
+                }
+            });
+
+            el.addEventListener('pointerup', (e) => {
+                if (!isDown) return;
+                isDown = false;
+                el.releasePointerCapture(e.pointerId);
+                if (!moved) onClickAction();
+            });
+        }
+
+        // Jam Pasir Pembalik Waktu
+        makeRelicDraggableAndClickable(document.getElementById('hourglassRelic'), () => {
+            const el = document.getElementById('hourglassRelic');
+            el.classList.add('spinning');
+            setTimeout(() => el.classList.remove('spinning'), 650);
+            playMagicChime();
+            if (isShelfView) {
+                showSpellToast('⏳ Jam Pasir berputar! Pilih buku untuk memutar waktu.');
+                return;
+            }
+            if (currentLeaf === 0) {
+                showSpellToast('⏳ Waktu sudah berada di Sampul Depan.');
+            } else {
+                showSpellToast('⏳ Pemutar Waktu! Membalik lembaran kembali ke awal...');
+                goToLeaf(0);
+            }
+        });
+
+        // Bola Kristal Ramalan
+        const prophecies = [
+            '🔮 Ramalan: "Arsip lama menyimpan jawaban atas krisis zaman baru."',
+            '🔮 Ramalan: "Setiap lembar yang terbuka menyingkap jejak rakyat yang terlupakan."',
+            '🔮 Ramalan: "Gunakan lensa Revelio untuk membaca yang tersirat di balik tinta."'
+        ];
+        makeRelicDraggableAndClickable(document.getElementById('crystalRelic'), () => {
+            const el = document.getElementById('crystalRelic');
+            el.classList.add('spinning');
+            setTimeout(() => el.classList.remove('spinning'), 650);
+            playMagicChime();
+            const msg = prophecies[Math.floor(Math.random() * prophecies.length)];
+            showSpellToast(msg);
+            if (!isShelfView) {
+                const randomLeaf = Math.floor(Math.random() * totalLeaves) + 1;
+                goToLeaf(randomLeaf);
+            }
+        });
+
+        // --- LILIN INTERAKTIF (TIUP / NYALAKAN) ---
+        function toggleCandle(candleEl, event) {
+            event.stopPropagation();
+            const isOut = candleEl.classList.toggle('extinguished');
+            if (isOut) {
+                const smoke = document.createElement('div');
+                smoke.className = 'candle-smoke';
+                candleEl.appendChild(smoke);
+                setTimeout(() => smoke.remove(), 1100);
+                playPaperSound();
+            } else {
+                playMagicChime();
+            }
+        }
+
+        // --- TEKA-TEKI SEGEL RANTAI JILID IV ---
+        function cycleSealDial(dialIdx) {
+            if (sealedBookUnlocked) return;
+            sealState[dialIdx] = (sealState[dialIdx] + 1) % dialSymbols.length;
+            document.getElementById(`dial${dialIdx}`).textContent = dialSymbols[sealState[dialIdx]];
+            playPaperSound();
+
+            if (sealState[0] === 0 && sealState[1] === 0 && sealState[2] === 0) {
+                unlockSealedGrimoire();
+                showSpellToast('✨ Simbol sejajar! Rantai segel Jilid IV terlepas.');
+            }
+        }
+
+        function unlockSealedGrimoire() {
+            sealedBookUnlocked = true;
+            sealState = [0, 0, 0];
+            [0, 1, 2].forEach(i => {
+                const d = document.getElementById(`dial${i}`);
+                if (d) d.textContent = '✦';
+            });
+            const sealedBtn = document.getElementById('sealedBookBtn');
+            if (sealedBtn) sealedBtn.classList.add('unlocked');
+            const hint = document.getElementById('sealHintText');
+            if (hint) hint.innerHTML = '<strong style="color:#86efac;">✓ Segel Rantai Terbuka!</strong> Buku siap diterbangkan.';
+        }
+
+        // --- KURSOR TONGKAT SIHIR LUMOS ---
+        let lastDustTime = 0;
+        function handleWandPointer(x, y) {
+            wandGlow.style.opacity = '1';
+            wandGlow.style.left = `${x}px`;
+            wandGlow.style.top = `${y}px`;
+
+            updateRevelioReveal(x, y);
+
+            const now = performance.now();
+            if (now - lastDustTime > 42) {
+                const dust = document.createElement('div');
+                dust.className = 'wand-stardust';
+                dust.style.left = `${x}px`;
+                dust.style.top = `${y}px`;
+                dust.style.setProperty('--sx', `${(Math.random() - 0.5) * 28}px`);
+                dust.style.setProperty('--sy', `${14 + Math.random() * 24}px`);
+                document.body.appendChild(dust);
+                setTimeout(() => dust.remove(), 860);
+                lastDustTime = now;
+            }
+        }
+
+        window.addEventListener('mousemove', e => handleWandPointer(e.clientX, e.clientY), { passive: true });
+        window.addEventListener('touchmove', e => {
+            if (e.touches[0]) handleWandPointer(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        document.addEventListener('mouseleave', () => { wandGlow.style.opacity = '0'; });
+
+        // --- PEMBENTUK JARING KERTAS LEMAS 4 SEGMEN BERANTAI ---
+        const SEGMENTS = 4;
+        const leafModels = [];
+
+        leaves.forEach((leaf, index) => {
+            const frontOrig = leaf.querySelector('.page-front');
+            const backOrig = leaf.querySelector('.page-back');
+            const isStiff = leaf.dataset.stiff === 'true';
+
+            leaf.innerHTML = '';
+
+            let parentEl = leaf;
+            const segElements = [];
+            const frontShades = [];
+            const backShades = [];
+            const frontBodies = [];
+            const backBodies = [];
+
+            for (let s = 0; s < SEGMENTS; s++) {
+                const seg = document.createElement('div');
+                seg.className = `bend-seg seg-${s}`;
+
+                const sliceFront = document.createElement('div');
+                sliceFront.className = 'slice-face slice-front';
+                const frontClone = frontOrig.cloneNode(true);
+                frontClone.style.left = `-${s * 82.5}px`;
+                const fShade = document.createElement('div');
+                fShade.className = 'bend-shade';
+                sliceFront.appendChild(frontClone);
+                sliceFront.appendChild(fShade);
+
+                const sliceBack = document.createElement('div');
+                sliceBack.className = 'slice-face slice-back';
+                const backClone = backOrig.cloneNode(true);
+                backClone.style.left = `-${(SEGMENTS - 1 - s) * 82.5}px`;
+                const bShade = document.createElement('div');
+                bShade.className = 'bend-shade';
+                sliceBack.appendChild(backClone);
+                sliceBack.appendChild(bShade);
+
+                seg.appendChild(sliceFront);
+                seg.appendChild(sliceBack);
+                parentEl.appendChild(seg);
+
+                segElements.push(seg);
+                frontShades.push(fShade);
+                backShades.push(bShade);
+
+                const fb = frontClone.querySelector('.page-body');
+                const bb = backClone.querySelector('.page-body');
+                if (fb) frontBodies.push(fb);
+                if (bb) backBodies.push(bb);
+
+                parentEl = seg;
+            }
+
+            const syncScroll = (bodies) => {
+                let syncing = false;
+                bodies.forEach(b => {
+                    b.addEventListener('scroll', () => {
+                        if (syncing) return;
+                        syncing = true;
+                        const top = b.scrollTop;
+                        bodies.forEach(other => {
+                            if (other !== b) other.scrollTop = top;
+                        });
+                        requestAnimationFrame(() => { syncing = false; });
+                    }, { passive: true });
+                });
+            };
+            syncScroll(frontBodies);
+            syncScroll(backBodies);
+
+            leafModels.push({
+                el: leaf,
+                segs: segElements,
+                frontShades,
+                backShades,
+                isStiff,
+                progress: 0,
+                target: 0,
+                animId: null,
+                index
+            });
+        });
+
+        // --- RENDER POSE KERTAS (DIPAKAI UNTUK ANIMASI OTOMATIS MAUPUN DRAG FISIK) ---
+        function applyLeafBendPose(model, p, direction) {
+            model.progress = p;
+            const bendWave = Math.sin(Math.PI * p);
+            const flexibility = model.isStiff ? 4.5 : 19.5;
+
+            model.segs[0].style.transform = `rotateY(${-180 * p}deg)`;
+            for (let s = 1; s < SEGMENTS; s++) {
+                const weight = s === 1 ? 0.85 : (s === 2 ? 1.15 : 1.35);
+                const curlAngle = direction * bendWave * flexibility * weight;
+                model.segs[s].style.transform = `rotateY(${curlAngle}deg)`;
+            }
+
+            const shadeIntensity = bendWave * (model.isStiff ? 0.12 : 0.26);
+            for (let s = 0; s < SEGMENTS; s++) {
+                if (direction === 1) {
+                    model.frontShades[s].style.opacity = shadeIntensity;
+                    model.frontShades[s].style.background = s % 2 === 0
+                        ? 'linear-gradient(to right, rgba(0,0,0,0.18), rgba(255,255,255,0.22))'
+                        : 'linear-gradient(to right, rgba(255,255,255,0.25), rgba(0,0,0,0.2))';
+                    model.backShades[s].style.opacity = shadeIntensity * 0.6;
+                    model.backShades[s].style.background = 'linear-gradient(to left, rgba(0,0,0,0.22), transparent)';
+                } else {
+                    model.backShades[s].style.opacity = shadeIntensity;
+                    model.backShades[s].style.background = 'linear-gradient(to left, rgba(0,0,0,0.18), rgba(255,255,255,0.24))';
+                    model.frontShades[s].style.opacity = shadeIntensity * 0.6;
+                }
+            }
+        }
+
+        function animateLeafPhysics(model) {
+            if (model.animId) cancelAnimationFrame(model.animId);
+
+            const duration = model.isStiff ? 780 : 900;
+            const startProgress = model.progress;
+            const endProgress = model.target;
+            const direction = endProgress >= startProgress ? 1 : -1;
+            const startTime = performance.now();
+
+            model.el.style.zIndex = totalLeaves + 20;
+
+            function frame(now) {
+                const elapsed = now - startTime;
+                const rawT = Math.min(1, elapsed / duration);
+                const ease = rawT < 0.5
+                    ? 4 * rawT * rawT * rawT
+                    : 1 - Math.pow(-2 * rawT + 2, 3) / 2;
+
+                const p = startProgress + (endProgress - startProgress) * ease;
+                applyLeafBendPose(model, p, direction);
+
+                if (rawT < 1) {
+                    model.animId = requestAnimationFrame(frame);
+                } else {
+                    model.progress = endProgress;
+                    model.segs[0].style.transform = `rotateY(${endProgress === 1 ? -180 : 0}deg)`;
+                    for (let s = 1; s < SEGMENTS; s++) {
+                        model.segs[s].style.transform = 'rotateY(0deg)';
+                    }
+                    model.frontShades.forEach(sh => sh.style.opacity = 0);
+                    model.backShades.forEach(sh => sh.style.opacity = 0);
+                    model.el.style.zIndex = endProgress === 1 ? (model.index + 1) : (totalLeaves - model.index);
+                    model.animId = null;
+                }
+            }
+
+            model.animId = requestAnimationFrame(frame);
+        }
+
+        // --- INTERAKSI TARIK & GULUNG UJUNG HALAMAN SECARA FISIK (DRAG CURL) ---
+        let dragState = null;
+        const swipeArea = document.getElementById('swipeArea');
+
+        swipeArea.addEventListener('pointerdown', (e) => {
+            if (isShelfView || isFlying) return;
+            if (e.target.closest('button') || e.target.closest('.arcana-medallion')) return;
+
+            dragState = {
+                startX: e.clientX,
+                startY: e.clientY,
+                activeModel: null,
+                mode: null, // 'forward' atau 'backward'
+                moved: false
+            };
+        });
+
+        swipeArea.addEventListener('pointermove', (e) => {
+            if (!dragState || isShelfView || isFlying) return;
+            const dx = e.clientX - dragState.startX;
+            const dy = e.clientY - dragState.startY;
+
+            if (!dragState.moved) {
+                if (Math.abs(dx) < 8) return;
+                if (Math.abs(dy) > Math.abs(dx) * 1.3) {
+                    dragState = null; // Biarkan scroll vertikal halaman berjalan normal
+                    return;
+                }
+                dragState.moved = true;
+
+                if (dx < 0 && currentLeaf < totalLeaves) {
+                    dragState.mode = 'forward';
+                    dragState.activeModel = leafModels[currentLeaf];
+                } else if (dx > 0 && currentLeaf > 0) {
+                    dragState.mode = 'backward';
+                    dragState.activeModel = leafModels[currentLeaf - 1];
+                } else {
+                    dragState = null;
+                    return;
+                }
+
+                if (dragState.activeModel.animId) cancelAnimationFrame(dragState.activeModel.animId);
+                dragState.activeModel.el.style.zIndex = totalLeaves + 25;
+            }
+
+            const dragSpan = 290;
+            if (dragState.mode === 'forward') {
+                const p = Math.max(0.01, Math.min(0.99, -dx / dragSpan));
+                applyLeafBendPose(dragState.activeModel, p, 1);
+            } else if (dragState.mode === 'backward') {
+                const p = Math.max(0.01, Math.min(0.99, 1 - (dx / dragSpan)));
+                applyLeafBendPose(dragState.activeModel, p, -1);
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (!dragState) return;
+            const state = dragState;
+            dragState = null;
+
+            if (!state.moved || !state.activeModel) return;
+
+            const m = state.activeModel;
+            if (state.mode === 'forward') {
+                if (m.progress > 0.35) {
+                    playPaperSound();
+                    m.target = 1;
+                    animateLeafPhysics(m);
+                    triggerInkReveal(currentLeaf);
+                    if (currentLeaf + 1 < totalLeaves) triggerInkReveal(currentLeaf + 1);
+                    currentLeaf++;
+                    updateUI();
+                } else {
+                    m.target = 0;
+                    animateLeafPhysics(m);
+                }
+            } else if (state.mode === 'backward') {
+                if (m.progress < 0.65) {
+                    playPaperSound();
+                    currentLeaf--;
+                    m.target = 0;
+                    animateLeafPhysics(m);
+                    triggerInkReveal(currentLeaf);
+                    updateUI();
+                } else {
+                    m.target = 1;
+                    animateLeafPhysics(m);
+                }
+            }
+        });
+
+        // --- ASTROLAB SAMPUL INTERAKTIF ---
+        function rotateCoverAstrolabe(event) {
+            event.stopPropagation();
+            astrolabeStep = (astrolabeStep + 1) % 4;
+            playMagicChime();
+            const item = catalogBooks[selectedBookIdx];
+            leaves[0].querySelectorAll('.arcana-medallion').forEach(med => {
+                med.style.transform = `rotate(${astrolabeStep * 90}deg) scale(1.06)`;
+                setTimeout(() => { med.style.transform = `rotate(${astrolabeStep * 90}deg) scale(1)`; }, 260);
+            });
+            leaves[0].querySelectorAll('#coverSecretWhisper').forEach(el => {
+                el.textContent = astrolabeStep === 0
+                    ? 'Sentuh astrolab untuk menyingkap sandi...'
+                    : item.secretWhisper;
+            });
+        }
+
+        // --- PENA BULU CATATAN PINGGIR ---
+        function openQuillModal() {
+            if (isShelfView) {
+                showSpellToast('🪶 Buka salah satu buku terlebih dahulu untuk menulis catatan.');
+                return;
+            }
+            const noteKey = `${selectedBookIdx}_${currentLeaf}`;
+            document.getElementById('quillModalSubtitle').textContent = `Catatan pada ${positionLabels[currentLeaf]}:`;
+            document.getElementById('quillInput').value = marginaliaNotes[noteKey] || '';
+            quillModal.classList.add('show');
+            quillModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeQuillModal() {
+            quillModal.classList.remove('show');
+            quillModal.setAttribute('aria-hidden', 'true');
+        }
+
+        function saveQuillNote() {
+            const text = document.getElementById('quillInput').value.trim();
+            const noteKey = `${selectedBookIdx}_${currentLeaf}`;
+            if (text) marginaliaNotes[noteKey] = text;
+            else delete marginaliaNotes[noteKey];
+
+            try {
+                localStorage.setItem('archive_marginalia', JSON.stringify(marginaliaNotes));
+            } catch (_) {}
+
+            renderAllMarginaliaNotes();
+            playMagicChime();
+            closeQuillModal();
+            showSpellToast('🪶 Catatan pena bulu tergores di halaman.');
+        }
+
+        function clearQuillNote() {
+            document.getElementById('quillInput').value = '';
+            saveQuillNote();
+        }
+
+        function renderAllMarginaliaNotes() {
+            for (let l = 1; l <= totalLeaves; l++) {
+                const noteText = marginaliaNotes[`${selectedBookIdx}_${l}`] || marginaliaNotes[`${selectedBookIdx}_${l - 1}`] || '';
+                document.querySelectorAll(`.marginalia-note[data-leaf-note="${l}"]`).forEach(box => {
+                    if (noteText) {
+                        box.textContent = `🪶 Catatan Pembaca: "${noteText}"`;
+                        box.classList.add('has-note');
+                    } else {
+                        box.textContent = '';
+                        box.classList.remove('has-note');
+                    }
+                });
+            }
+        }
+
+        // --- PERBARUI SELURUH 10 HALAMAN SESUAI JILID YANG DIPILIH ---
+        function applyBookContent(idx) {
+            const item = catalogBooks[idx];
+            leaves[0].querySelectorAll('#coverSeries').forEach(el => el.textContent = item.series.split('•')[0].trim());
+            leaves[0].querySelectorAll('#coverTitle').forEach(el => el.textContent = item.title);
+            leaves[0].querySelectorAll('#coverSecretWhisper').forEach(el => el.textContent = 'Sentuh astrolab untuk menyingkap sandi...');
+            leaves[0].querySelectorAll('.cover-front').forEach(el => el.style.background = item.coverColor);
+            leaves[totalLeaves - 1].querySelectorAll('.cover-back').forEach(el => el.style.background = item.coverColor);
+
+            item.pages.forEach((pg, pIdx) => {
+                const pageNum = pIdx + 1;
+                const leafOwnerIndex = Math.floor(pageNum / 2);
+                const ownerLeaf = leaves[leafOwnerIndex];
+                if (!ownerLeaf) return;
+                ownerLeaf.querySelectorAll(`#p${pageNum}Header`).forEach(el => el.textContent = pg.h);
+                ownerLeaf.querySelectorAll(`#p${pageNum}Body`).forEach(el => el.innerHTML = pg.b);
+            });
+
+            renderAllMarginaliaNotes();
+        }
+
+        function triggerInkReveal(leafIdx) {
+            if (leafIdx < 0 || leafIdx >= totalLeaves) return;
+            const targetLeafEl = leaves[leafIdx];
+            targetLeafEl.classList.remove('ink-revealing');
+            void targetLeafEl.offsetWidth;
+            targetLeafEl.classList.add('ink-revealing');
+        }
+
+        // --- SUARA SIHIR & KERTAS ---
+        function playMagicChime() {
+            if (!soundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                [880, 1174.66, 1567.98].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.001, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.04, now + i * 0.08 + 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 0.45);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.5);
+                });
+                setTimeout(() => ctx.close(), 900);
+            } catch (_) {}
+        }
+
+        function playPaperSound() {
+            if (!soundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const duration = 0.32;
+                const bufferSize = ctx.sampleRate * duration;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI) * 0.22;
+                }
+
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1050, ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(460, ctx.currentTime + duration);
+                filter.Q.value = 1.2;
+
+                noise.connect(filter);
+                filter.connect(ctx.destination);
+                noise.start();
+                noise.onended = () => ctx.close();
+            } catch (_) {}
+        }
+
+        function playBirdBookFlightSound() {
+            if (!soundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+
+                for (let flap = 0; flap < 6; flap++) {
+                    const start = now + flap * 0.36;
+                    const dur = 0.26;
+                    const bufSize = ctx.sampleRate * dur;
+                    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+                    const data = buf.getChannelData(0);
+                    for (let i = 0; i < bufSize; i++) {
+                        data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufSize) * Math.PI) * 0.24;
+                    }
+                    const src = ctx.createBufferSource();
+                    src.buffer = buf;
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(420, start);
+                    filter.frequency.exponentialRampToValueAtTime(1150, start + dur * 0.5);
+                    filter.frequency.exponentialRampToValueAtTime(360, start + dur);
+                    filter.Q.value = 1.6;
+
+                    src.connect(filter);
+                    filter.connect(ctx.destination);
+                    src.start(start);
+                }
+
+                const notes = [659.25, 880, 1174.66, 1318.5, 1567.98];
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.4);
+
+                    gain.gain.setValueAtTime(0.001, now + idx * 0.4);
+                    gain.gain.exponentialRampToValueAtTime(0.042, now + idx * 0.4 + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.4 + 0.65);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + idx * 0.4);
+                    osc.stop(now + idx * 0.4 + 0.7);
+                });
+
+                setTimeout(() => ctx.close(), 2600);
+            } catch (_) {}
+        }
+
+        // --- NAVIGASI HALAMAN ---
+        function nextPage() {
+            if (isShelfView || isFlying || currentLeaf >= totalLeaves) return;
+            playPaperSound();
+            const model = leafModels[currentLeaf];
+            model.target = 1;
+            animateLeafPhysics(model);
+            triggerInkReveal(currentLeaf);
+            if (currentLeaf + 1 < totalLeaves) triggerInkReveal(currentLeaf + 1);
+            currentLeaf++;
+            updateUI();
+        }
+
+        function prevPage() {
+            if (isShelfView || isFlying || currentLeaf <= 0) return;
+            playPaperSound();
+            currentLeaf--;
+            const model = leafModels[currentLeaf];
+            model.target = 0;
+            animateLeafPhysics(model);
+            triggerInkReveal(currentLeaf);
+            updateUI();
+        }
+
+        function goToLeaf(target, onComplete = null) {
+            target = Number(target);
+            if (!Number.isInteger(target)) return;
+            target = Math.max(0, Math.min(totalLeaves, target));
+            if (navigationTimer) clearInterval(navigationTimer);
+            if (target === currentLeaf) {
+                if (onComplete) onComplete();
+                return;
+            }
+            const step = target > currentLeaf ? 1 : -1;
+            navigationTimer = setInterval(() => {
+                if (currentLeaf === target) {
+                    clearInterval(navigationTimer);
+                    navigationTimer = null;
+                    if (onComplete) onComplete();
+                } else if (step > 0) {
+                    nextPage();
+                } else {
+                    prevPage();
+                }
+            }, 180);
+        }
+
+        function updateUI() {
+            prevBtn.disabled = currentLeaf === 0 || isShelfView;
+            nextBtn.disabled = currentLeaf === totalLeaves || isShelfView;
+            book.classList.toggle('is-open', currentLeaf > 0 && currentLeaf < totalLeaves);
+            book.classList.toggle('is-closed-back', currentLeaf === totalLeaves);
+
+            const percent = Math.round((currentLeaf / totalLeaves) * 100);
+            progressFill.style.width = percent + '%';
+            percentIndicator.textContent = percent + '%';
+            pageIndicator.textContent = positionLabels[currentLeaf] || '';
+            tocSelect.value = String(currentLeaf);
+
+            renderBookmarkUI();
+            renderAllMarginaliaNotes();
+
+            if (currentLeaf === totalLeaves && !completionShown) {
+                completionShown = true;
+                setTimeout(() => {
+                    if (currentLeaf === totalLeaves && !isShelfView) {
+                        fairyCelebration.classList.add('show');
+                        fairyCelebration.setAttribute('aria-hidden', 'false');
+                    }
+                }, 700);
+            } else if (currentLeaf < totalLeaves) {
+                completionShown = false;
+                closeFairyCelebration();
+            }
+        }
+
+        function closeFairyCelebration() {
+            fairyCelebration.classList.remove('show');
+            fairyCelebration.setAttribute('aria-hidden', 'true');
+        }
+
+        function restartReading() {
+            closeFairyCelebration();
+            completionShown = false;
+            goToLeaf(0);
+        }
+
+        // --- BOOKMARK ---
+        function toggleBookmark() {
+            bookmarkedLeaf = bookmarkedLeaf === currentLeaf ? null : currentLeaf;
+            try {
+                if (bookmarkedLeaf === null) localStorage.removeItem('flipbook_bookmark');
+                else localStorage.setItem('flipbook_bookmark', String(bookmarkedLeaf));
+            } catch (_) {}
+            renderBookmarkUI();
+        }
+
+        function jumpToBookmark() {
+            if (bookmarkedLeaf !== null) goToLeaf(bookmarkedLeaf);
+        }
+
+        function renderBookmarkUI() {
+            leaves.forEach((leaf, i) => leaf.classList.toggle('is-bookmarked', bookmarkedLeaf === i));
+            if (bookmarkedLeaf === null) {
+                bookmarkBtn.classList.remove('active');
+                bookmarkBtn.textContent = '🔖 Tandai';
+                jumpBookmarkBtn.style.display = 'none';
+            } else {
+                bookmarkBtn.classList.toggle('active', bookmarkedLeaf === currentLeaf);
+                bookmarkBtn.textContent = bookmarkedLeaf === currentLeaf ? '🔖 Ditandai' : '🔖 Tandai';
+                jumpBookmarkBtn.style.display = bookmarkedLeaf !== currentLeaf ? 'inline-flex' : 'none';
+            }
+        }
+
+        // --- RAK PERPUSTAKAAN & ANIMASI TERBANG PULANG-PERGI ---
+        function toggleShelfView() {
+            if (isFlying) return;
+            closeFairyCelebration();
+
+            if (!isShelfView) {
+                goToLeaf(0, () => {
+                    flyBookBackToShelf();
+                });
+                return;
+            }
+
+            isShelfView = false;
+            document.getElementById('swipeArea').style.display = 'flex';
+            document.getElementById('bottomControls').style.display = 'flex';
+            shelfBtn.classList.remove('active');
+            shelfView.classList.remove('show');
+            shelfView.setAttribute('aria-hidden', 'true');
+            document.getElementById('libraryLabel').textContent = '✦ THE OLD ARCHIVE · ENCHANTED READING ROOM ✦';
+            updateUI();
+        }
+
+        function selectShelfBook(idx, btnEl) {
+            selectedBookIdx = idx;
+            document.querySelectorAll('.shelf-book').forEach(b => b.classList.remove('selected'));
+            btnEl.classList.add('selected');
+
+            const item = catalogBooks[idx];
+            document.getElementById('shelfBookTag').textContent = item.series;
+            document.getElementById('shelfBookTitle').textContent = item.title;
+            document.getElementById('shelfBookDesc').textContent = item.desc;
+
+            const puzzleBox = document.getElementById('sealPuzzleBox');
+            puzzleBox.classList.toggle('show', idx === 3);
+        }
+
+        function spawnMagicSparkles(x, y, zIdx, count = 5) {
+            for (let i = 0; i < count; i++) {
+                const sp = document.createElement('div');
+                sp.className = 'magic-sparkle';
+                sp.style.zIndex = String(zIdx);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 18 + Math.random() * 45;
+                sp.style.left = `${x + (Math.random() - 0.5) * 35}px`;
+                sp.style.top = `${y + (Math.random() - 0.5) * 20}px`;
+                sp.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+                sp.style.setProperty('--dy', `${Math.sin(angle) * dist + 20}px`);
+                document.body.appendChild(sp);
+                setTimeout(() => sp.remove(), 960);
+            }
+        }
+
+        function quadBezier(p0, p1, p2, t) {
+            const inv = 1 - t;
+            return inv * inv * p0 + 2 * inv * t * p1 + t * t * p2;
+        }
+
+        function createWingedBirdElement(wingColor) {
+            const birdBook = document.createElement('div');
+            birdBook.className = 'winged-book-stage';
+            birdBook.innerHTML = `
+                <div class="winged-book-body">
+                    <div class="wing wing-left" style="background: ${wingColor};">
+                        <div class="wing-pages"></div>
+                    </div>
+                    <div class="winged-spine"></div>
+                    <div class="wing wing-right" style="background: ${wingColor};">
+                        <div class="wing-pages"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(birdBook);
+            return birdBook;
+        }
+
+        function flyAndOpenBook() {
+            if (isFlying) return;
+
+            if (selectedBookIdx === 3 && !sealedBookUnlocked) {
+                showSpellToast('🔒 Jilid IV masih tersegel rantai! Sejajarkan simbol ✦ ✦ ✦ atau klik Alohomora.');
+                const puzzleBox = document.getElementById('sealPuzzleBox');
+                puzzleBox.style.transform = 'translateX(-6px)';
+                setTimeout(() => puzzleBox.style.transform = 'translateX(6px)', 90);
+                setTimeout(() => puzzleBox.style.transform = 'translateX(0)', 180);
+                return;
+            }
+
+            isFlying = true;
+
+            const item = catalogBooks[selectedBookIdx];
+            const selectedEl = document.querySelector(`.shelf-book[data-book-idx="${selectedBookIdx}"]`);
+            const startRect = selectedEl.getBoundingClientRect();
+            const shelfRect = shelfView.getBoundingClientRect();
+
+            playBirdBookFlightSound();
+
+            const birdBook = createWingedBirdElement(item.wingColor);
+            birdBook.style.zIndex = '120';
+            selectedEl.style.opacity = '0.2';
+
+            const pStart = { x: startRect.left + startRect.width / 2 - 75, y: startRect.top };
+            const pTop   = { x: shelfRect.left + shelfRect.width * 0.45 - 75, y: Math.max(24, shelfRect.top - 75) };
+            const pLeftOuter = { x: Math.max(12, shelfRect.left - 95), y: shelfRect.top + shelfRect.height * 0.35 };
+            const pBackMid   = { x: shelfRect.left + shelfRect.width * 0.5 - 75, y: shelfRect.top + shelfRect.height * 0.48 };
+            const pRightOuter = { x: Math.min(window.innerWidth - 162, shelfRect.right - 55), y: shelfRect.top + shelfRect.height * 0.38 };
+            const pFrontRight = { x: Math.min(window.innerWidth - 170, shelfRect.right - 30), y: shelfRect.top + shelfRect.height * 0.55 };
+            const pScreenCenter = { x: window.innerWidth / 2 - 75, y: window.innerHeight / 2 - 55 };
+
+            const totalFlightMs = 2350;
+            const t0 = performance.now();
+            let lastSpark = 0;
+
+            function animateBirdOrbit(now) {
+                const elapsed = now - t0;
+                const t = Math.min(1, elapsed / totalFlightMs);
+
+                let curX, curY, scale, bankZ, yawY, zLayer, bookOpacity;
+
+                if (t < 0.28) {
+                    const u = t / 0.28;
+                    curX = quadBezier(pStart.x, pTop.x - 40, pLeftOuter.x, u);
+                    curY = quadBezier(pStart.y, pTop.y - 25, pLeftOuter.y, u);
+                    scale = 0.78 + 0.22 * Math.sin(u * Math.PI) - 0.15 * u;
+                    bankZ = -22 * Math.sin(u * Math.PI);
+                    yawY = -35 * u;
+                    zLayer = 120;
+                    bookOpacity = 1;
+                } else if (t < 0.68) {
+                    const u = (t - 0.28) / 0.40;
+                    curX = quadBezier(pLeftOuter.x, pBackMid.x, pRightOuter.x, u);
+                    curY = quadBezier(pLeftOuter.y, pBackMid.y + Math.sin(u * Math.PI * 2) * 18, pRightOuter.y, u);
+                    scale = 0.63 - 0.08 * Math.sin(u * Math.PI);
+                    bankZ = 10 * Math.cos(u * Math.PI);
+                    yawY = -35 + 70 * u;
+                    zLayer = 30;
+                    bookOpacity = 0.85;
+                } else {
+                    const u = (t - 0.68) / 0.32;
+                    const ease = u * u * (3 - 2 * u);
+                    curX = quadBezier(pRightOuter.x, pFrontRight.x + 35, pScreenCenter.x, ease);
+                    curY = quadBezier(pRightOuter.y, pFrontRight.y - 30, pScreenCenter.y, ease);
+                    scale = 0.65 + 0.72 * ease;
+                    bankZ = 18 * Math.sin(ease * Math.PI);
+                    yawY = 35 * (1 - ease);
+                    zLayer = 120;
+                    bookOpacity = 1;
+                }
+
+                birdBook.style.zIndex = String(zLayer);
+                birdBook.style.opacity = String(bookOpacity);
+                birdBook.style.left = `${curX}px`;
+                birdBook.style.top = `${curY}px`;
+                birdBook.style.transform = `scale(${scale}) rotateY(${yawY}deg) rotateZ(${bankZ}deg)`;
+
+                if (now - lastSpark > 65) {
+                    spawnMagicSparkles(curX + 75, curY + 55, zLayer - 1, 4);
+                    lastSpark = now;
+                }
+
+                if (t < 1) {
+                    requestAnimationFrame(animateBirdOrbit);
+                } else {
+                    applyBookContent(selectedBookIdx);
+
+                    selectedEl.style.opacity = '1';
+                    isShelfView = false;
+
+                    shelfBtn.classList.remove('active');
+                    shelfView.classList.remove('show');
+                    shelfView.setAttribute('aria-hidden', 'true');
+
+                    document.getElementById('swipeArea').style.display = 'flex';
+                    document.getElementById('bottomControls').style.display = 'flex';
+                    document.getElementById('libraryLabel').textContent = '✦ THE OLD ARCHIVE · ENCHANTED READING ROOM ✦';
+
+                    bookScene.classList.remove('magic-landing');
+                    void bookScene.offsetWidth;
+                    bookScene.classList.add('magic-landing');
+
+                    birdBook.remove();
+                    isFlying = false;
+                    goToLeaf(0);
+                    updateUI();
+                }
+            }
+
+            requestAnimationFrame(animateBirdOrbit);
+        }
+
+        function flyBookBackToShelf() {
+            if (isFlying) return;
+            isFlying = true;
+
+            const item = catalogBooks[selectedBookIdx];
+            playBirdBookFlightSound();
+
+            document.getElementById('swipeArea').style.display = 'none';
+            document.getElementById('bottomControls').style.display = 'none';
+            isShelfView = true;
+            shelfBtn.classList.add('active');
+            shelfView.classList.add('show');
+            shelfView.setAttribute('aria-hidden', 'false');
+            document.getElementById('libraryLabel').textContent = '✦ THE OLD ARCHIVE · KOLEKSI RAK SIHIR ✦';
+
+            const targetSlot = document.querySelector(`.shelf-book[data-book-idx="${selectedBookIdx}"]`);
+            targetSlot.style.opacity = '0.15';
+            const endRect = targetSlot.getBoundingClientRect();
+            const shelfRect = shelfView.getBoundingClientRect();
+
+            const birdBook = createWingedBirdElement(item.wingColor);
+            const pStart = { x: window.innerWidth / 2 - 75, y: window.innerHeight / 2 - 55 };
+            const pArcTop = { x: shelfRect.right - 60, y: Math.max(24, shelfRect.top - 70) };
+            const pEnd = { x: endRect.left + endRect.width / 2 - 75, y: endRect.top + 30 };
+
+            const duration = 1250;
+            const t0 = performance.now();
+            let lastSpark = 0;
+
+            function animateReturn(now) {
+                const t = Math.min(1, (now - t0) / duration);
+                const ease = t * t * (3 - 2 * t);
+
+                const curX = quadBezier(pStart.x, pArcTop.x, pEnd.x, ease);
+                const curY = quadBezier(pStart.y, pArcTop.y, pEnd.y, ease);
+                const scale = 1.25 - 0.65 * ease;
+                const bankZ = 20 * Math.sin(ease * Math.PI);
+
+                birdBook.style.zIndex = '120';
+                birdBook.style.left = `${curX}px`;
+                birdBook.style.top = `${curY}px`;
+                birdBook.style.transform = `scale(${scale}) rotateZ(${bankZ}deg)`;
+
+                if (now - lastSpark > 65) {
+                    spawnMagicSparkles(curX + 75, curY + 55, 119, 4);
+                    lastSpark = now;
+                }
+
+                if (t < 1) {
+                    requestAnimationFrame(animateReturn);
+                } else {
+                    targetSlot.style.opacity = '1';
+                    birdBook.remove();
+                    isFlying = false;
+                }
+            }
+
+            requestAnimationFrame(animateReturn);
+        }
+
+        // --- INTERAKSI KLIK & KEYBOARD ---
+        leaves.forEach((leaf, index) => {
+            leaf.addEventListener('click', (event) => {
+                if (event.target.closest('button') || event.target.closest('.arcana-medallion')) return;
+                if (currentLeaf === index) nextPage();
+                else if (currentLeaf === index + 1) prevPage();
+            });
+        });
+
+        document.addEventListener('keydown', e => {
+            if (quillModal.classList.contains('show')) return;
+            if (e.key === 'ArrowRight') nextPage();
+            if (e.key === 'ArrowLeft') prevPage();
+            if (e.key === 'Escape') {
+                closeFairyCelebration();
+                closeQuillModal();
+            }
+        });
+
+        function changeFontSize(delta) {
+            fontScale = Math.min(1.28, Math.max(0.85, fontScale + delta));
+            document.documentElement.style.setProperty('--font-scale', fontScale);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('soundBtn');
+            btn.textContent = soundEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', soundEnabled);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const btn = document.getElementById('themeBtn');
+            btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+            else document.exitFullscreen?.().catch(() => {});
+        }
+
+        applyBookContent(0);
+        renderBookmarkUI();
+        updateUI();
+    </script>
+</body>
+</html>
